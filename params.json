@@ -1,0 +1,448 @@
+{
+ "name": "CTRL MixBus",
+ "params": [
+  {
+   "key": "in_gain",
+   "name": "In Gain",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.7,
+   "dynamic_display": true
+  },
+  {
+   "key": "in_on",
+   "name": "Gain On",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "ph_inv",
+   "name": "Phase Inv",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "ph_on",
+   "name": "Phase On",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "width",
+   "name": "Width",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "wd_on",
+   "name": "Width On",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "bm_freq",
+   "name": "Bass Freq",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.4,
+   "dynamic_display": true
+  },
+  {
+   "key": "bm_on",
+   "name": "Bass On",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "balance",
+   "name": "Balance",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.5,
+   "dynamic_display": true
+  },
+  {
+   "key": "bal_on",
+   "name": "Bal On",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "eq_mode",
+   "name": "EQ Mode",
+   "options": [
+    "EQ",
+    "ISOLATOR"
+   ],
+   "default": 1
+  },
+  {
+   "key": "eq_high",
+   "name": "EQ High",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.5,
+   "dynamic_display": true
+  },
+  {
+   "key": "eq_mid",
+   "name": "EQ Mid",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.5,
+   "dynamic_display": true
+  },
+  {
+   "key": "eq_low",
+   "name": "EQ Low",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.5,
+   "dynamic_display": true
+  },
+  {
+   "key": "eq_on",
+   "name": "EQ On",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "lp_cut",
+   "name": "LP Cutoff",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "lp_res",
+   "name": "LP Reso",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "lp_curve",
+   "name": "LP Slope",
+   "options": [
+    "12",
+    "24",
+    "36",
+    "48",
+    "96",
+    "BRICK"
+   ],
+   "default": 0
+  },
+  {
+   "key": "lp_on",
+   "name": "LP On",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "hp_cut",
+   "name": "HP Cutoff",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "hp_res",
+   "name": "HP Reso",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "hp_curve",
+   "name": "HP Slope",
+   "options": [
+    "12",
+    "24",
+    "36",
+    "48",
+    "96",
+    "BRICK"
+   ],
+   "default": 0
+  },
+  {
+   "key": "hp_on",
+   "name": "HP On",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "gt_thr",
+   "name": "Gate Thr",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "gt_att",
+   "name": "Gate Atk",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.37,
+   "dynamic_display": true
+  },
+  {
+   "key": "gt_hold",
+   "name": "Gate Hold",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.1,
+   "dynamic_display": true
+  },
+  {
+   "key": "gt_rel",
+   "name": "Gate Rel",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.5,
+   "dynamic_display": true
+  },
+  {
+   "key": "mx_thr",
+   "name": "Max Thresh",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "mx_att",
+   "name": "Max Attack",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.25,
+   "dynamic_display": true
+  },
+  {
+   "key": "mx_rel",
+   "name": "Max Release",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.5,
+   "dynamic_display": true
+  },
+  {
+   "key": "mx_out",
+   "name": "Max Output",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "m_in_l",
+   "name": "In L",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "m_in_r",
+   "name": "In R",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "m_out_l",
+   "name": "Out L",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "m_out_r",
+   "name": "Out R",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "mx_in_l",
+   "name": "Max In L",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "mx_in_r",
+   "name": "Max In R",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "mx_gr",
+   "name": "Max GR",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "lp_view",
+   "name": "LP Display",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "hp_view",
+   "name": "HP Display",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "in_db_i",
+   "name": "In dB",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "in_db_t",
+   "name": "In dB .1",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "out_db_i",
+   "name": "Out dB",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "out_db_t",
+   "name": "Out dB .1",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "mxi_db_i",
+   "name": "Max In dB",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "mxi_db_t",
+   "name": "Max In .1",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "gr_db_i",
+   "name": "GR dB",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "gr_db_t",
+   "name": "GR dB .1",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "lp_crv",
+   "name": "LP Curve",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "hp_crv",
+   "name": "HP Curve",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "m_fin_l",
+   "name": "Flt In L",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "m_fin_r",
+   "name": "Flt In R",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "fin_db_i",
+   "name": "Flt In dB",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "fin_db_t",
+   "name": "Flt In .1",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  }
+ ]
+}

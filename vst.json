@@ -1,0 +1,43 @@
+{
+  "name": "CTRL MixBus",
+  "vendor": "CTRL",
+  "uid": "DjUS",
+  "version": 2000,
+  "so": "ctrl_mixbus.so",
+  "effect": true,
+  "params": "params.json",
+  "layout": "layout.conf",
+  "presets": "presets.json",
+  "targets": [
+    "armv7",
+    "aarch64"
+  ],
+  "defines": {
+    "HAS_DISPLAY_REV": 1,
+    "DISPLAY_REV_NO_UPDATE": 1
+  },
+  "build": {
+    "root": ".",
+    "sources": [
+      "src/engine/dj_engine.c",
+      "src/dsp/dj_simple.c",
+      "src/dsp/dj_bassmono.c",
+      "src/dsp/dj_eq.c",
+      "src/dsp/dj_filter.c",
+      "src/dsp/dj_gate.c",
+      "src/dsp/dj_maximizer.c",
+      "src/dsp/dj_meter.c",
+      "src/dsp/dj_taper.c"
+    ],
+    "cflags": [
+      "-Isrc/dsp",
+      "-Isrc/engine",
+      "-ffp-contract=off",
+      "-fno-fast-math"
+    ],
+    "libs": [
+      "-lm"
+    ]
+  },
+  "art": "html"
+}

@@ -1,0 +1,103 @@
+/* dj_params.def -- THE single source of truth for the plugin's parameter list.
+ *
+ * Included by src/engine/dj_engine.c (X-macro) and read by tools/gen_params.py, which writes params.json and
+ * presets.json from it (CI runs `tools/gen_params.py --check`). The ORDER IS THE VST PARAMETER INDEX that saved
+ * projects, automation and Q-Link maps bind to. Once a version has shipped: APPEND ONLY, never insert, reorder or
+ * rename a shipped key (params.lock enforces it at build time). The list was renumbered once, before the first
+ * release (see CHANGELOG 0.2.0); MPC's own preset/project state is saved by KEY (see dj_engine.c "state"), so
+ * it survives later additions either way.
+ *
+ *   DJP(ID, "key", "Display name", KIND, default, "options")
+ *   KIND: SW    an on/off switch that turns like a knob: 0..1 kept exactly as the host sends it, off below 0.5 and on from 0.5
+ *               (a Q-Link's 0-63 = off, 64-127 = on), so the Q-Link, the on-screen slider and the sound always agree (1.0.5;
+ *               until 1.0.4 a two-option TOG, which the wrapper snapped to Off/On on the first Q-Link click)
+ *         TOG   two options Off|On (none left; kept in the engine and the generator)
+ *         OPT   option list, options separated by |
+ *         KNOB  0..1 on the wire; src/dsp/dj_taper.h gives units and on-screen text
+ *         METER 0..1, driven by the engine (display only, never saved)
+ *   default: option index for TOG/OPT, position for KNOB and SW (SW: 1.0 = on, 0.0 = off). The defaults ARE the stock "Init" preset.
+ *
+ * "_on" = a stage's true-bypass switch, 1 = the stage processes, 0 = bypassed (the switch is lit while the stage works and
+ * grey while it is bypassed, so the screen shows the signal path). Stages that cannot be neutral (bass mono) start off so Init
+ * is transparent. The gate and the maximizer have no bypass switch: the gate is off at its minimum threshold (-80 dB), the
+ * maximizer is transparent at its defaults (threshold 0 dB, ceiling 0 dB) until a peak exceeds full scale.
+ * Order below = the order of the controls on the MPC pages (see tools/gen_layout.py). */
+
+/* ---- INPUT page ---- */
+DJP(IN_GAIN,  "in_gain",   "In Gain",   KNOB,  0.70, "")
+DJP(IN_ON,    "in_on",     "Gain On",   SW,  1.0,    "")
+DJP(PH_INV,   "ph_inv",    "Phase Inv", SW,  0.0,    "")
+DJP(PH_ON,    "ph_on",     "Phase On",  SW,  1.0,    "")
+DJP(WD_AMT,   "width",     "Width",     KNOB,  1.0,  "")
+DJP(WD_ON,    "wd_on",     "Width On",  SW,  1.0,    "")
+DJP(BM_FREQ,  "bm_freq",   "Bass Freq", KNOB,  0.40, "")
+DJP(BM_ON,    "bm_on",     "Bass On",   SW,  0.0,    "")
+DJP(BAL,      "balance",   "Balance",   KNOB,  0.5,  "")
+DJP(BAL_ON,   "bal_on",    "Bal On",    SW,  1.0,    "")
+
+/* ---- FILTER page ---- */
+DJP(EQ_MODE,  "eq_mode",   "EQ Mode",   OPT,   1,    "EQ|ISOLATOR")
+DJP(EQ_HIGH,  "eq_high",   "EQ High",   KNOB,  0.5,  "")
+DJP(EQ_MID,   "eq_mid",    "EQ Mid",    KNOB,  0.5,  "")
+DJP(EQ_LOW,   "eq_low",    "EQ Low",    KNOB,  0.5,  "")
+DJP(EQ_ON,    "eq_on",     "EQ On",     SW,  1.0,    "")
+DJP(LP_CUT,   "lp_cut",    "LP Cutoff", KNOB,  1.0,  "")
+DJP(LP_RES,   "lp_res",    "LP Reso",   KNOB,  0.0,  "")
+DJP(LP_CURVE, "lp_curve",  "LP Slope",  OPT,   0,    "12|24|36|48|96|BRICK")
+DJP(LP_ON,    "lp_on",     "LP On",     SW,  1.0,    "")
+DJP(HP_CUT,   "hp_cut",    "HP Cutoff", KNOB,  0.0,  "")
+DJP(HP_RES,   "hp_res",    "HP Reso",   KNOB,  0.0,  "")
+DJP(HP_CURVE, "hp_curve",  "HP Slope",  OPT,   0,    "12|24|36|48|96|BRICK")
+DJP(HP_ON,    "hp_on",     "HP On",     SW,  1.0,    "")
+
+/* ---- GATE page: gate, then the maximizer ---- */
+DJP(GT_THR,   "gt_thr",    "Gate Thr",  KNOB,  0.0,  "")     /* 0 = -80 dB = gate off */
+DJP(GT_ATT,   "gt_att",    "Gate Atk",  KNOB,  0.37, "")
+DJP(GT_HOLD,  "gt_hold",   "Gate Hold", KNOB,  0.10, "")
+DJP(GT_REL,   "gt_rel",    "Gate Rel",  KNOB,  0.50, "")
+DJP(MX_THR,   "mx_thr",    "Max Thresh", KNOB, 1.0,  "")     /* 1 = 0 dB */
+DJP(MX_ATT,   "mx_att",    "Max Attack", KNOB, 0.25, "")
+DJP(MX_REL,   "mx_rel",    "Max Release", KNOB, 0.50, "")
+DJP(MX_OUT,   "mx_out",    "Max Output", KNOB, 1.0,  "")     /* 1 = 0 dB (the ceiling) */
+
+/* ---- display only: meters (-60..0 dB in 3 dB segments), gain reduction, filter-curve picture codes ----
+ * m_in_l/r = the INPUT page's input meter, after the gain stage and before the phase invert (1.0.7; was the plugin's input);
+ * m_out_l/r = the plugin's output; mx_in_l/r = the maximizer's input (after the gate, before the
+ * maximizer's threshold gain); mx_gr = the maximizer's drive, 2 dB before limiting .. 18 dB into it (src/dsp/dj_meter.h DJ_GR_START_DB);
+ * lp_view and hp_view = frame / (DJ_VIEW_FRAMES - 1) of art/flt_*.png.
+ * *_db_i / *_db_t = the dB number under each meter pair (its peak, held 1 s): the whole-dB part and the tenth, as frames of
+ * art/readout_int.png and art/readout_dec.png (src/dsp/dj_readout.h). */
+DJP(M_IN_L,   "m_in_l",    "In L",      METER, 0,    "")
+DJP(M_IN_R,   "m_in_r",    "In R",      METER, 0,    "")
+DJP(M_OUT_L,  "m_out_l",   "Out L",     METER, 0,    "")
+DJP(M_OUT_R,  "m_out_r",   "Out R",     METER, 0,    "")
+DJP(MX_IN_L,  "mx_in_l",   "Max In L",  METER, 0,    "")
+DJP(MX_IN_R,  "mx_in_r",   "Max In R",  METER, 0,    "")
+DJP(MX_GR,    "mx_gr",     "Max GR",    METER, 0,    "")
+DJP(LP_VIEW,  "lp_view",   "LP Display", METER, 0,   "")
+DJP(HP_VIEW,  "hp_view",   "HP Display", METER, 0,   "")
+DJP(IN_DB_I,  "in_db_i",   "In dB",     METER, 0,    "")
+DJP(IN_DB_T,  "in_db_t",   "In dB .1",  METER, 0,    "")
+DJP(OUT_DB_I, "out_db_i",  "Out dB",    METER, 0,    "")
+DJP(OUT_DB_T, "out_db_t",  "Out dB .1", METER, 0,    "")
+DJP(MXI_DB_I, "mxi_db_i",  "Max In dB", METER, 0,    "")
+DJP(MXI_DB_T, "mxi_db_t",  "Max In .1", METER, 0,    "")
+DJP(GR_DB_I,  "gr_db_i",   "GR dB",     METER, 0,    "")
+DJP(GR_DB_T,  "gr_db_t",   "GR dB .1",  METER, 0,    "")
+
+/* ---- 1.0.4: the filter slope on a Q-Link ----
+ * A Q-Link turns lp_crv / hp_crv, a plain 0..1 control the MPC owns (no snapping), and the slope is round(value x 5): 0 = 12,
+ * 0.2 = 24 ... 1 = BRICK. The engine sets lp_curve / hp_curve from it and reports the change, so the 12..BRICK buttons always
+ * show the slope in use. Turning lp_curve itself from a Q-Link could not do that: the wrapper snaps a Q-Link move to the next
+ * option while MPC keeps the in-between value, so a fast turn left the buttons showing another slope (device, 1.0.3).
+ * Tapping a button sets lp_curve, and the engine moves lp_crv to that slope (centre of its range), so a Q-Link turn carries on
+ * from there. Not part of the saved state: derived from lp_curve on load (src/engine/dj_engine.c). */
+DJP(LP_CRV,   "lp_crv",    "LP Curve",  KNOB,  0.0,  "")
+DJP(HP_CRV,   "hp_crv",    "HP Curve",  KNOB,  0.0,  "")
+
+/* ---- 1.0.7: the FILTER page's own input meter ----
+ * After the balance stage (its on/off included) and before the DJ EQ: what the EQ and filters receive. Display only. */
+DJP(M_FIN_L,  "m_fin_l",   "Flt In L",  METER, 0,    "")
+DJP(M_FIN_R,  "m_fin_r",   "Flt In R",  METER, 0,    "")
+DJP(FIN_DB_I, "fin_db_i",  "Flt In dB", METER, 0,    "")
+DJP(FIN_DB_T, "fin_db_t",  "Flt In .1", METER, 0,    "")

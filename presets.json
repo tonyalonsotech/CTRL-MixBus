@@ -1,0 +1,42 @@
+{
+ "presets": [
+  {
+   "name": "Init",
+   "values": {
+    "in_gain": 0.7,
+    "in_on": 1.0,
+    "ph_inv": 0.0,
+    "ph_on": 1.0,
+    "width": 1.0,
+    "wd_on": 1.0,
+    "bm_freq": 0.4,
+    "bm_on": 0.0,
+    "balance": 0.5,
+    "bal_on": 1.0,
+    "eq_mode": "ISOLATOR",
+    "eq_high": 0.5,
+    "eq_mid": 0.5,
+    "eq_low": 0.5,
+    "eq_on": 1.0,
+    "lp_cut": 1.0,
+    "lp_res": 0.0,
+    "lp_curve": "12",
+    "lp_on": 1.0,
+    "hp_cut": 0.0,
+    "hp_res": 0.0,
+    "hp_curve": "12",
+    "hp_on": 1.0,
+    "gt_thr": 0.0,
+    "gt_att": 0.37,
+    "gt_hold": 0.1,
+    "gt_rel": 0.5,
+    "mx_thr": 1.0,
+    "mx_att": 0.25,
+    "mx_rel": 0.5,
+    "mx_out": 1.0,
+    "lp_crv": 0.0,
+    "hp_crv": 0.0
+   }
+  }
+ ]
+}
