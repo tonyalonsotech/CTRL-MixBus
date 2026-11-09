@@ -13,7 +13,8 @@ Catalog](https://open-mpc.github.io/)\
 
 **Versions:**
 V1.0 - Input and Output stage created. Tested local installation on MPC One G2 successfully.
-V1.1 - Initial build of all control strips
+
+V1.1 - Initial build of all control device pages tested and working on MPC One G2. CPU Load and Memory Load below 1% when used on Tube Synth Plugin with Air Compressor, Air Maximizer, and Air Delay in the FX Chain.
 
 ------------------------------------------------------------------------
 
