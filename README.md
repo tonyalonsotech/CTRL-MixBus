@@ -9,7 +9,11 @@
 **Build environment:** Ubuntu Linux with the Open MPC toolchain\
 **Distribution:** [Open MPC Plugin
 Catalog](https://open-mpc.github.io/)\
-**Status:** In Development
+**Status:** Feasibility test completed
+
+**Versions:**
+V1.0 - Input and Output stage created. Tested local installation on MPC One G2 successfully.
+V1.1 - Initial build of all control strips
 
 ------------------------------------------------------------------------
 
