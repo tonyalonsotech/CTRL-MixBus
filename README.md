@@ -1,504 +1,837 @@
 # CTRL Mixbus
+
 ### Native Stereo Mixing and Processing Plugin for Akai MPC
 
-**Project:** CTRL Mixbus  
-**Plugin Type:** VST Audio Effect  
-**Developer:** Tony Alonso Tech
-**Primary Platform:** Akai MPC Standalone  
-**Distribution:** [Open MPC Plugin Catalog](https://open-mpc.github.io/)  
+**Project:** CTRL Mixbus\
+**Developer:** Tony Alonso Tech\
+**Plugin type:** Native MPC VST2 audio effect\
+**Primary platform:** Akai MPC standalone\
+**Build environment:** Ubuntu Linux with the Open MPC toolchain\
+**Distribution:** [Open MPC Plugin
+Catalog](https://open-mpc.github.io/)\
 **Status:** In Development
 
----
+------------------------------------------------------------------------
 
 ## 1. Overview
 
-CTRL Mixbus is a professional stereo mixing and processing plugin designed for Akai MPC standalone hardware.
+CTRL Mixbus is a professional stereo mixing and processing effect being
+developed first for Akai MPC standalone hardware.
 
-Inspired by the workflow and functionality of professional DJ mixers, CTRL Mixbus combines essential mixing tools, a DJM style three-band isolator, adjustable filtering, stereo manipulation, and dynamics processing into a single VST effect.
+Inspired by the workflow and functionality of professional DJ mixers,
+CTRL Mixbus combines essential mixing tools, a Pioneer DJM-900NXS2-style
+three-band isolator, adjustable filtering, stereo manipulation, and
+dynamics processing in one native MPC plugin.
 
-The plugin is being developed with a particular emphasis on:
+The MPC implementation is the first and primary development target. The
+DSP engine, parameter model, preset format, and processing behavior will
+be designed so they can be reused when desktop versions for Windows,
+macOS, and Linux are developed later.
 
-- Native operation within MPC standalone firmware.
-- Low CPU and memory consumption.
-- Full touchscreen operation.
-- Hardware Q-Link integration.
-- Native MPC preset management.
-- Portable presets compatible across Windows, macOS, Linux, and MPC.
-- Consistent DSP behavior across supported architectures.
+Project priorities:
 
-CTRL Mixbus is intended to function as a native MPC audio effect without requiring external applications, background services, or additional runtime installations.
+-   Native operation within MPC standalone firmware.
+-   Low CPU and memory consumption, particularly on Gen 1 hardware.
+-   Full touchscreen operation.
+-   Hardware Q-Link integration.
+-   Integration with the MPC preset menu and project save/recall.
+-   Portable user presets that can be transferred between MPC and future
+    desktop versions.
+-   Separate, validated builds for MPC Gen 1 and Gen 2.
+-   Reproducible builds and documented release artifacts.
 
-## 2. Supported Hardware and Firmware
+CTRL Mixbus is intended to run as a native MPC effect. It must not
+require a companion application, background service, or separately
+installed runtime on the MPC.
 
-CTRL Mixbus will provide separate builds for the two MPC hardware generations.
+## 2. Development and Build Strategy
 
-| Hardware generation | Architecture | Target firmware |
-|---|---|---|
-| MPC Gen 1 | ARM32 / ARMHF | MPC OS 2.x / 3.x |
-| MPC Gen 2 | ARM64 / AArch64 | MPC OS 3.x |
+### MPC first
 
-### Gen 1 Devices
+Development and release work will proceed in this order:
 
-Target hardware includes:
+1.  Implement the CTRL Mixbus engine against the Open MPC engine
+    interface.
+2.  Define and lock the plugin parameters and their permanent ordering.
+3.  Build the native MPC VST2 plugin using the Open MPC toolchain.
+4.  Develop the MPC touchscreen pages and Q-Link layout.
+5.  Run the Open MPC PC-side test suite.
+6.  Benchmark and validate on physical Gen 1 and Gen 2 devices.
+7.  Package and publish the MPC release through the Open MPC catalog.
+8.  After the MPC implementation is stable, develop desktop plugin
+    wrappers for Windows, macOS, and Linux using the shared DSP engine.
 
-- MPC Live
-- MPC Live II
-- MPC One
-- MPC One+
-- MPC X
-- MPC Key 61
-- Akai Force
+The desktop versions are future ports, not the first development target.
 
-### Gen 2 Devices
+### Open MPC build environment
 
-Target hardware includes:
+MPC plugin builds are performed on a development computer, not on the
+MPC itself. The Open MPC build scripts use Docker containers to provide
+the required build toolchains.
 
-- MPC Live III
-- MPC One G2
-- MPC Key 37 G2
-- Akai Force G2
+The primary development environment is Ubuntu Linux with:
 
-**Important:** Hardware and firmware compatibility will be individually tested and documented. A successful build for an architecture does not automatically constitute hardware compatibility.
+-   Git
+-   Python 3
+-   Docker
+-   The Open MPC `mpc-vst-plugins` repository
+-   The CTRL Mixbus source repository
 
-### Firmware Compatibility
+The Open MPC build guide is the authority for current setup and build
+commands:
 
-The development process will prioritize compatibility with the Open MPC plugin toolchain and its established release requirements.
+https://open-mpc.github.io/build.html
 
-Gen 1 builds will use a compatible ARMHF toolchain and glibc baseline. Gen 2 builds will use a separate AArch64 toolchain.
+### Open MPC framework
 
-## 3. Signal Processing Architecture
+CTRL Mixbus will follow the native plugin architecture and conventions
+in:
+
+https://github.com/open-mpc/mpc-vst-plugins
+
+The plugin will provide a block-rendering C/C++ engine that the Open MPC
+tools wrap as a native MPC VST2 plugin.
+
+The engine must implement the interface required by the current Open MPC
+wrapper. The current documented contract includes:
+
+-   Engine creation and destruction.
+-   MIDI input handling where applicable.
+-   Setting and retrieving parameters by key.
+-   Rendering 128 stereo frames at 44.1 kHz.
+
+The exact declarations in the checked-out Open MPC `wrapper/engine.h`
+and the current porting documentation must be treated as authoritative
+during implementation. Do not duplicate or invent wrapper interfaces.
+
+### Build description
+
+The MPC plugin will be described using the Open MPC `vst.json`
+configuration and its associated parameter and layout files.
+
+The build description will identify:
+
+-   Plugin name, vendor, UID, and version.
+-   Shared-library filename.
+-   Parameter definition file.
+-   MPC page layout.
+-   Engine source files and include paths.
+-   Compiler definitions and required libraries.
+
+The Open MPC build tooling generates the MPC plugin artifacts, including
+the ARM shared library, parameter table, skin resources, and plugin-list
+metadata.
+
+## 3. Supported MPC Hardware and Firmware
+
+CTRL Mixbus will have separate architecture-specific builds.
+
+  -----------------------------------------------------------------------
+  Hardware generation     Architecture            Build target
+  ----------------------- ----------------------- -----------------------
+  MPC Gen 1               ARM32 / ARMHF           ARMHF, built against
+                                                  the Open MPC-compatible
+                                                  glibc 2.31 baseline
+
+  MPC Gen 2               ARM64 / AArch64         Separate AArch64 build
+  -----------------------------------------------------------------------
+
+### Gen 1 devices
+
+Target devices include:
+
+-   MPC Live
+-   MPC Live II
+-   MPC One
+-   MPC X
+-   MPC Key 61
+-   Akai Force
+
+Gen 1 compatibility includes MPC OS 2.x and 3.x, subject to the plugin's
+compiled library and skin compatibility. OS 2.x and OS 3.x have
+different skin requirements; compatibility must be verified for each
+release.
+
+### Gen 2 devices
+
+Target devices include:
+
+-   MPC Live III
+-   MPC One G2
+-   MPC Key G2 models
+
+Gen 2 requires a separate AArch64 build and Gen 2-specific installation
+and validation.
+
+### Compatibility policy
+
+A successful cross-compile is not proof of device compatibility.
+
+Each hardware generation and supported firmware family must be validated
+independently. The release documentation must state exactly which
+devices and firmware versions were tested.
+
+Current Open MPC compatibility guidance:
+
+https://github.com/open-mpc/mpc-vst-plugins/blob/main/docs/COMPATIBILITY.md
+
+Gen 2 guidance:
+
+https://github.com/open-mpc/mpc-vst-plugins/blob/main/docs/GEN2.md
+
+OS 2.x skin guidance:
+
+https://github.com/open-mpc/mpc-vst-plugins/blob/main/docs/OS2_SKINS.md
+
+## 4. Signal Processing Architecture
 
 CTRL Mixbus uses a fixed processing chain:
 
-1. Input Gain
-2. Phase Inversion
-3. Stereo Width
-4. Bass Mono
-5. Balance
-6. Three-Band Isolator EQ
-7. Low-Pass Filter
-8. High-Pass Filter
-9. Noise Gate
+1.  Input Gain
+2.  Phase Inversion
+3.  Stereo Width
+4.  Bass Mono
+5.  Balance
+6.  Three-Band Isolator EQ
+7.  Low-Pass Filter
+8.  High-Pass Filter
+9.  Noise Gate
 10. Output Level
 
-Every processing stage includes an independent ON/OFF bypass control.
+Every processing stage has an independent ON/OFF bypass control. Bypass
+controls are operated through the MPC touchscreen, not Q-Links. Bypass
+transitions should be smoothed where appropriate to avoid clicks.
 
-Bypass controls will be operated through the MPC touchscreen.
+### 4.1 Input Gain
 
-### 3.1 Input Gain
+-   Adjustable gain: -∞ dB to +24 dB.
+-   Independent bypass.
+-   Stereo input metering.
 
-- Adjustable gain: -∞ dB to +24 dB.
-- Independent bypass.
-- Stereo input metering.
+### 4.2 Phase Inversion
 
-### 3.2 Phase Inversion
+-   One switch inverts both left and right channels simultaneously.
+-   Independent bypass.
+-   Touchscreen operation.
 
-- Simultaneous phase inversion of both stereo channels.
-- Single ON/OFF control.
-- Independent bypass.
+### 4.3 Stereo Width
 
-### 3.3 Stereo Width
+-   Adjustable from normal stereo width through to mono.
+-   Mid/Side-based processing.
+-   Independent bypass.
 
-- Adjustable stereo width.
-- Normal stereo operation through to mono.
-- Mid/Side-based processing.
-- Independent bypass.
+### 4.4 Bass Mono
 
-### 3.4 Bass Mono
+-   Adjustable crossover frequency.
+-   Low-frequency stereo information is summed to mono.
+-   Stereo information above the crossover is retained.
+-   Independent bypass.
 
-- Adjustable crossover frequency.
-- Low-frequency stereo information converted to mono.
-- Stereo information above the crossover retained.
-- Independent bypass.
+### 4.5 Balance
 
-### 3.5 Balance
+-   Adjustable left/right balance.
+-   Center position maintains equal channel levels.
+-   Independent bypass.
 
-- Adjustable left/right balance.
-- Center position maintains equal channel levels.
-- Independent bypass.
+### 4.6 Three-Band Isolator EQ
 
-### 3.6 Three-Band Isolator EQ
+The EQ is based on the isolator behavior of the Pioneer DJM-900NXS2.
 
-Based on the isolator behavior of the Pioneer DJM-900NXS2.
+Three independently adjustable bands:
 
-Three independent frequency bands:
+-   LOW
+-   MID
+-   HIGH
 
-- LOW
-- MID
-- HIGH
+Each band has independent level adjustment and full-kill capability. The
+complete EQ section has its own bypass control.
 
-Each band will have independent level adjustment and full-kill capability.
+Crossover frequencies, gain range, kill behavior, and response curves
+must be verified against reliable DJM-900NXS2 documentation or
+measurements before the DSP implementation is finalized. The design must
+not assume that a generic three-band EQ is an accurate reproduction.
 
-The entire EQ section will have an independent bypass control.
-
-### 3.7 Low-Pass Filter
+### 4.7 Low-Pass Filter
 
 Adjustable low-pass filter with:
 
-- Cutoff frequency.
-- Resonance.
-- Selectable filter curve:
-  - 12 dB/octave
-  - 24 dB/octave
-  - 36 dB/octave
-  - 48 dB/octave
-  - 96 dB/octave
-  - Brickwall
+-   Cutoff frequency.
+-   Resonance.
+-   Selectable curve:
+    -   12 dB/octave
+    -   24 dB/octave
+    -   36 dB/octave
+    -   48 dB/octave
+    -   96 dB/octave
+    -   Brickwall
+-   Independent bypass.
 
-Independent bypass.
+The brickwall option must use a practical real-time implementation. Its
+response, latency, ringing, stability, and CPU cost must be measured and
+documented.
 
-### 3.8 High-Pass Filter
+### 4.8 High-Pass Filter
 
 Adjustable high-pass filter with:
 
-- Cutoff frequency.
-- Resonance.
-- Selectable filter curve:
-  - 12 dB/octave
-  - 24 dB/octave
-  - 36 dB/octave
-  - 48 dB/octave
-  - 96 dB/octave
-  - Brickwall
+-   Cutoff frequency.
+-   Resonance.
+-   Selectable curve:
+    -   12 dB/octave
+    -   24 dB/octave
+    -   36 dB/octave
+    -   48 dB/octave
+    -   96 dB/octave
+    -   Brickwall
+-   Independent bypass.
 
-Independent bypass.
+The brickwall option must use a practical real-time implementation. Its
+response, latency, ringing, stability, and CPU cost must be measured and
+documented.
 
-### 3.9 Noise Gate
+### 4.9 Noise Gate
 
 Configurable stereo noise gate with:
 
-- Threshold.
-- Attack.
-- Hold.
-- Release.
+-   Threshold.
+-   Attack.
+-   Hold.
+-   Release.
+-   Independent bypass.
 
-Stereo-linked detection will be used to maintain stereo image stability.
+Stereo-linked detection will be used to help maintain stereo image
+stability.
 
-Independent bypass.
+### 4.10 Output Level
 
-### 3.10 Output Level
+-   Adjustable output gain: -∞ dB to +12 dB.
+-   Independent bypass.
+-   Stereo output metering.
 
-- Adjustable output gain: -∞ dB to +12 dB.
-- Independent bypass.
-- Stereo output metering.
+## 5. MPC User Interface
 
-## 4. MPC User Interface
+CTRL Mixbus will include a dedicated native MPC touchscreen interface,
+designed around the MPC display and Q-Link layout.
 
-CTRL Mixbus will include a dedicated native MPC touchscreen interface.
+### Q-Link rules
 
-The interface will be designed around the MPC hardware display and Q-Link layout.
+-   No more than 16 rotary controls on any individual page.
+-   Rotary parameters are controlled using the Q-Links.
+-   ON/OFF switches and bypass controls are operated through the
+    touchscreen.
+-   Phase inversion is operated through the touchscreen.
+-   Q-Link assignments follow the currently selected page.
+-   Displayed values and visual states update when parameters change.
 
-### Q-Link Integration
+The 16-control limit applies to Q-Link rotary parameters. Meters,
+graphs, labels, and touchscreen switches do not consume rotary
+assignments.
 
-A maximum of 16 rotary controls will be exposed on any individual interface page.
+The final page layout must also respect the actual widget and page
+capabilities of the Open MPC skin system.
 
-This ensures that the available Q-Links can correspond directly with the visible controls.
+### Initial interface pages
 
-The following interaction rules will apply:
+#### MAIN / MIX
 
-- Rotary parameters are controlled using Q-Links.
-- ON/OFF switches are controlled exclusively through the touchscreen.
-- Bypass switches are touchscreen-operated.
-- Phase inversion is touchscreen-operated.
-- All parameter changes must be reflected immediately in the interface.
-- Q-Link assignments must follow the currently selected interface page.
+-   Input Gain
+-   Stereo Width
+-   Bass Mono Crossover
+-   Balance
+-   Output Level
+-   Input Meter
+-   Output Meter
+-   Touchscreen bypass controls
 
-### Interface Pages
+#### EQ / FILTER
 
-The initial interface will be divided into the following pages.
+-   LOW EQ
+-   MID EQ
+-   HIGH EQ
+-   Low-Pass Cutoff
+-   Low-Pass Resonance
+-   Low-Pass Curve
+-   High-Pass Cutoff
+-   High-Pass Resonance
+-   High-Pass Curve
+-   Touchscreen EQ and filter bypass controls
 
-**MAIN / MIX**
+#### GATE
 
-- Input Gain
-- Stereo Width
-- Bass Mono Crossover
-- Balance
-- Output Level
-- Input Meter
-- Output Meter
-- Processing bypass controls
+-   Threshold
+-   Attack
+-   Hold
+-   Release
+-   Touchscreen gate bypass
+-   Gate activity / gain-reduction visualization
 
-**EQ / FILTER**
+Additional pages may be introduced as needed, while retaining the
+maximum of 16 rotary controls per page.
 
-- LOW EQ
-- MID EQ
-- HIGH EQ
-- Low-Pass Cutoff
-- Low-Pass Resonance
-- Low-Pass Curve
-- High-Pass Cutoff
-- High-Pass Resonance
-- High-Pass Curve
-- EQ and filter bypass controls
+### Visual feedback
 
-**GATE**
+Required visual elements:
 
-- Threshold
-- Attack
-- Hold
-- Release
-- Gate bypass
-- Gain reduction visualization
+-   Stereo input level meter.
+-   Stereo output level meter.
+-   Live filter response visualization.
+-   Visual indication of filter cutoff and resonance.
+-   Gate activity or gain-reduction indication.
+-   Clearly visible ON/OFF state for every processing stage.
+-   Current parameter values.
 
-Additional pages may be introduced if necessary, provided the 16-control maximum is maintained.
+Visual updates must not block or disrupt the audio-rendering thread.
+Where the MPC skin system has limitations, the implementation must use
+supported native page elements and artwork rather than assume arbitrary
+desktop-style drawing is available.
 
-### Visual Feedback
+### Skin compatibility
 
-The MPC interface must provide meaningful visual feedback.
+The MPC skin is a first-class part of the plugin release.
 
-Required visual elements include:
+The project must account for the different skin requirements of MPC OS
+2.x and MPC OS 3.x. If one skin package cannot support both, the release
+must include the appropriate variants or clearly state the firmware
+limitation.
 
-- Stereo input level meter.
-- Stereo output level meter.
-- Live filter response visualization.
-- Visual indication of filter cutoff and resonance.
-- Gate activity / gain reduction indication.
-- Clearly visible ON/OFF states for every processing stage.
-- Current parameter values.
+Skin pages will be developed and previewed using the Open MPC Skin
+Studio and its documented tools.
 
-Visual elements must update without interfering with audio processing.
+## 6. Parameter Model and Project Recall
 
-## 5. Preset Management
+The parameter model must be designed before the full DSP implementation.
 
-CTRL Mixbus will include its own portable preset system.
+The Open MPC parameter definition determines the parameter ordering used
+by MPC projects. Once a plugin has shipped, existing parameter positions
+must never be reordered or reused. New parameters may only be appended.
 
-The preset format must remain compatible across all supported platforms.
+Requirements:
 
-A preset created on Windows must be loadable on macOS, Linux, and MPC without conversion.
+-   Assign stable, unique parameter keys.
+-   Define ranges, defaults, units, and display behavior.
+-   Keep parameter ordering stable after release.
+-   Commit the generated `params.lock` file where required by the Open
+    MPC workflow.
+-   Test parameter changes, automation, save, and restore.
+-   Ensure multiple plugin instances maintain independent state.
 
-### Factory Presets
+The plugin must restore its state correctly when an MPC project is
+saved, closed, and reopened.
+
+## 7. Preset Management
+
+CTRL Mixbus will include a portable, versioned preset format shared by
+the MPC implementation and future desktop ports.
+
+Presets must not depend on operating-system-specific paths or binary
+serialization. A preset created on MPC must be usable by future Windows,
+macOS, and Linux versions without conversion, and vice versa.
+
+### Factory preset
 
 The initial release will contain exactly one factory preset:
 
 **Init**
 
-This preset will initialize every parameter to its defined default value.
+Init restores every parameter to its defined default value.
 
-### User Presets
+### User presets
 
 Users must be able to:
 
-- Save their current settings as a new preset.
-- Load previously saved presets.
-- Rename user presets.
-- Delete user presets.
-- Restore the Init preset.
+-   Save current settings as a new preset.
+-   Load saved presets.
+-   Rename user presets.
+-   Delete user presets.
+-   Restore Init.
 
-### Cross-Platform Compatibility
+### MPC integration
 
-Presets will use a documented, versioned, platform-independent file format.
+CTRL Mixbus must integrate with the MPC preset workflow, including the
+plugin's PRESET menu where supported by the Open MPC wrapper and host.
 
-The format will not depend on operating-system-specific paths or binary serialization.
+Preset state and project state are related but distinct requirements:
 
-Preset compatibility must be maintained between:
+-   Presets allow users to save and recall named processing setups.
+-   MPC project state must restore the settings used by each plugin
+    instance when the project is reopened.
 
-- Windows desktop.
-- macOS desktop.
-- Linux desktop.
-- MPC Gen 1.
-- MPC Gen 2.
+The portable preset schema must be versioned and documented. Loading an
+older preset version must either migrate it safely or report a clear
+incompatibility.
 
-MPC host preset integration will also be implemented so CTRL Mixbus can participate in the MPC preset workflow.
+## 8. Dependencies and Packaging
 
-## 6. Dependencies and Packaging
+All required runtime dependencies must be included in the plugin
+source/build package wherever licensing and platform requirements
+permit.
 
-All required runtime dependencies must be included within the distributed plugin package wherever licensing and platform requirements permit.
+Third-party engine and DSP source dependencies must be vendored into the
+repository rather than downloaded dynamically during a build. This
+supports reproducible builds and avoids network-dependent build steps.
 
-The plugin must not require users to independently install:
+The plugin must not require MPC users to independently install:
 
-- Additional DSP libraries.
-- External runtime libraries.
-- Background services.
-- Separate processing applications.
-- Additional audio-processing frameworks.
+-   Additional DSP libraries.
+-   External runtime libraries not already provided by the target
+    environment.
+-   Background services.
+-   Separate processing applications.
+-   Additional audio-processing frameworks.
 
-The final plugin package must include all required plugin assets, interface resources, and supporting files.
+Any dependency that cannot legally or technically be bundled must be
+documented, including its version, license, and target-platform
+availability.
 
-Dependencies that cannot legally or technically be bundled must be explicitly documented.
+### MPC release artifacts
 
-### MPC Package Structure
+The release package will follow the current Open MPC plugin packaging
+conventions. Expected artifacts include:
 
-The MPC release will follow the Open MPC plugin packaging conventions.
+-   Native MPC VST2 shared library (`.so`).
+-   Plugin metadata and catalog information.
+-   MPC touchscreen skin resources.
+-   Parameter definitions and Q-Link/page configuration.
+-   Required plugin assets and vendored dependencies.
+-   Preset support and factory Init preset.
+-   Installation and removal scripts generated or required by the
+    release workflow.
+-   Installation instructions.
+-   Release checksums.
 
-The final release package is expected to contain:
+The exact package structure must follow the current Open MPC toolchain
+rather than a custom structure invented by CTRL Mixbus.
 
-- Native VST2 shared library.
-- MPC plugin metadata.
-- Native touchscreen skin.
-- Q-Link mapping configuration.
-- Required plugin assets.
-- Portable preset support.
-- Installation and removal scripts.
-- Installation documentation.
+## 9. Build, Test, Benchmark, and Release Workflow
 
-The exact directory structure will follow the Open MPC release requirements in effect at the time of publication.
+The Open MPC workflow is the primary build and release process for the
+MPC target.
 
-## 7. Installation and Distribution
+### 9.1 Describe the plugin
 
-CTRL Mixbus will be distributed through the official Open MPC ecosystem.
+Create and maintain:
 
-**Official distribution location:**
+-   `vst.json`
+-   Parameter definition file.
+-   Layout file.
+-   Engine source and headers.
+-   Build configuration and compiler definitions.
+
+The plugin UID, shared-library name, and parameter ordering must remain
+stable after release.
+
+### 9.2 Build
+
+Use the Open MPC build script with the CTRL Mixbus `vst.json`:
+
+``` bash
+MPC_VST=/path/to/mpc-vst-plugins
+"$MPC_VST/tools/build_port.sh" vst/vst.json
+```
+
+The toolchain builds the native target library and generates the
+associated plugin and skin artifacts.
+
+Build each hardware architecture using the documented Open MPC target
+configuration.
+
+### 9.3 Design the skin
+
+Use Open MPC Skin Studio to create and refine the touchscreen pages.
+
+Preview every page and retain screenshots as release artifacts.
+
+### 9.4 Test on the development computer
+
+Run the Open MPC port test:
+
+``` bash
+"$MPC_VST/tools/test_port.sh" vst/vst.json
+```
+
+The PC-side test validates the engine and wrapper in a host test
+environment. It is a required development gate, but it does not replace
+physical MPC testing.
+
+The test must pass before proceeding to device benchmarking.
+
+### 9.5 Benchmark and test on hardware
+
+Use the Open MPC benchmark tooling and test on actual target hardware.
+
+Validate:
+
+-   Plugin loading and unloading.
+-   Audio input and output.
+-   CPU use and audio stability.
+-   Touchscreen operation.
+-   Q-Link assignments.
+-   Bypass controls.
+-   Parameter automation.
+-   Preset save and load.
+-   Project save and recall.
+-   Multiple plugin instances.
+-   Long-duration operation.
+-   Meter and visualization performance.
+
+Gen 1 and Gen 2 must be tested separately.
+
+### 9.6 Release and catalog publication
+
+Use the current Open MPC release workflow to build, test, preview, and
+package the release.
+
+The release must be tested on the intended hardware before publication.
+
+To list CTRL Mixbus in the Open MPC catalog, follow the current catalog
+contribution process, including the required plugin catalog metadata and
+release information.
+
+## 10. Installation and Distribution
+
+CTRL Mixbus will be distributed through the Open MPC ecosystem:
 
 https://open-mpc.github.io/
 
-Once published, users will be able to find CTRL Mixbus in the Open MPC plugin catalog.
+The intended user installation routes are:
 
-### Open MPC Plugin Manager
+### On-device Open MPC Plugin Manager
 
-The preferred installation method will be the Open MPC Plugin Manager.
+Where supported, users can browse the catalog and install, update, or
+remove CTRL Mixbus directly on the MPC using the Open MPC Plugin Manager
+VST.
 
-Users will be able to:
+The current Open MPC documentation identifies the Plugin Manager as
+supporting Gen 1 and Gen 2 devices.
 
-1. Open the Plugin Manager on their MPC.
-2. Browse the available plugin catalog.
-3. Locate CTRL Mixbus.
-4. Select the appropriate available release.
-5. Install CTRL Mixbus directly onto their MPC.
-6. Load CTRL Mixbus from the MPC plugin browser.
+### Open MPC desktop installer
 
-Updates and removal will follow the Plugin Manager's supported workflows.
+The Open MPC installer app for Windows, macOS, and Linux can connect to
+an MPC and install compatible plugin release packages.
 
-### Desktop Installer
+This is an installation utility for MPC plugins. It does not mean the
+CTRL Mixbus desktop plugin ports are available at initial MPC release.
 
-CTRL Mixbus will also be distributed through the Open MPC desktop installer where supported.
+### Other documented installation routes
 
-The installer supports Windows, macOS, and Linux computers and can install compatible plugin packages onto connected MPC hardware.
+Open MPC also documents shell-based and USB installation routes. These
+may be used where appropriate for a supported device or firmware
+configuration.
 
-### Firmware-Specific Installation
+The release's `INSTALL.md` and the current Open MPC installation guide
+must provide the authoritative steps.
 
-Installation procedures will be documented for each supported firmware generation.
+Official installation guide:
 
-MPC OS 2.x devices require a separate installation route because the Open MPC Plugin Manager is designed for MPC OS 3.x.
+https://open-mpc.github.io/install.html
 
-No manual firmware modification should be necessary for a standard CTRL Mixbus installation.
+## 11. Real-Time Audio and Performance Requirements
 
-## 8. Performance Requirements
+CTRL Mixbus must operate reliably alongside other MPC instruments,
+effects, and audio tracks.
 
-CTRL Mixbus is intended to run alongside other MPC instruments, effects, and audio tracks.
+Requirements:
 
-CPU and memory efficiency are therefore essential.
+-   No dynamic memory allocation in the real-time audio-rendering path.
+-   No blocking filesystem or network operations in the audio thread.
+-   No mutex waits or other unbounded blocking in the audio thread.
+-   No unnecessary background processing.
+-   Efficient stereo DSP implementations.
+-   Parameter smoothing to minimize clicks and zipper noise.
+-   Correct operation at the render format and block size required by
+    the Open MPC engine interface.
+-   Efficient filter and gate processing.
+-   Stable operation across ARMHF and AArch64 builds.
+-   Independent state for multiple plugin instances.
 
-Development requirements include:
+Gen 1 performance is a particular concern. CPU use must be measured on
+physical hardware and evaluated in the context of the complete MPC
+project, not just an isolated plugin instance.
 
-- No dynamic memory allocation in the real-time audio processing path.
-- No blocking filesystem operations during audio processing.
-- No unnecessary background processing.
-- Efficient stereo DSP implementations.
-- Parameter smoothing to minimize audible artifacts.
-- Stable operation at the MPC host's supported sample rate and buffer size.
-- Efficient filter and gate processing.
-- Consistent behavior across ARM32 and AArch64 builds.
+## 12. Testing and Quality Assurance
 
-Performance testing will be conducted on actual MPC hardware.
+### DSP testing
 
-Each hardware generation will receive its own performance validation.
+-   Frequency response.
+-   Filter slope accuracy.
+-   Filter resonance.
+-   Isolator crossover behavior.
+-   Phase integrity.
+-   Stereo width accuracy.
+-   Bass mono operation.
+-   Gate attack, hold, and release.
+-   Input and output gain accuracy.
+-   Clipping and headroom behavior.
+-   Bypass transitions.
+-   Parameter smoothing.
+-   Sample-rate and block-processing correctness.
 
-## 9. Testing and Quality Assurance
+### MPC integration testing
 
-Before a release is considered production-ready, the following areas must be tested.
+-   Plugin loading and unloading.
+-   Audio input and output.
+-   Touchscreen interface.
+-   Q-Link assignments.
+-   Touchscreen bypass controls.
+-   Parameter automation.
+-   Preset loading and saving.
+-   Project state save and restore.
+-   Project reopening.
+-   Multiple plugin instances.
+-   Interface page switching.
+-   Meter and visualization performance.
 
-### DSP Testing
+### Hardware validation
 
-- Frequency response.
-- Filter slope accuracy.
-- Filter resonance.
-- Isolator crossover behavior.
-- Phase integrity.
-- Stereo width accuracy.
-- Bass mono operation.
-- Gate attack, hold, and release.
-- Input and output gain accuracy.
-- Clipping and headroom behavior.
-- Bypass transitions.
+Separate validation is required for:
 
-### MPC Integration Testing
+-   Gen 1 ARMHF hardware.
+-   Gen 2 AArch64 hardware.
+-   Supported MPC OS versions.
+-   Any supported Hakai firmware configuration.
 
-- Plugin loading.
-- Audio input and output.
-- Touchscreen interface.
-- Q-Link assignments.
-- Touchscreen bypass controls.
-- Parameter automation.
-- Preset loading and saving.
-- Project recall.
-- Project reopening.
-- Interface page switching.
-- Meter and visualization performance.
+A release must not be marked hardware-verified until the relevant
+physical device and firmware have been tested. The catalog's
+hardware-test status must accurately reflect the results.
 
-### Hardware Testing
+## 13. Release Documentation and Reproducibility
 
-Separate validation will be required for:
+Every release must include or reference:
 
-- Gen 1 ARM32 hardware.
-- Gen 2 AArch64 hardware.
-- Supported MPC OS versions.
-- Supported Hakai firmware versions.
+-   Complete CTRL Mixbus source code.
+-   All required headers and submodules.
+-   Vendored third-party dependencies and their licenses.
+-   Build scripts and `vst.json`.
+-   Parameter definitions and locked parameter ordering.
+-   Architecture-specific compiler flags and target details.
+-   Compiler and toolchain versions.
+-   Plugin metadata and UID.
+-   MPC touchscreen assets and skin previews.
+-   Q-Link/page configuration.
+-   Preset format documentation and Init preset.
+-   Installation and removal instructions.
+-   Release screenshots.
+-   Exact source Git commit and release tag.
+-   SHA-256 checksums.
+-   Test and benchmark results.
+-   Hardware and firmware compatibility results.
 
-A release must not be marked as hardware-verified until it has been tested on the corresponding physical hardware.
+Builds must be reproducible from a documented source commit and pinned
+toolchain.
 
-## 10. Release Documentation
+## 14. Future Desktop Ports
 
-Every published release must include or reference:
+The MPC implementation is the first release target. Desktop development
+begins after the MPC engine and behavior are stable.
 
-- Complete source code.
-- Required headers and submodules.
-- Build scripts and build configuration.
-- Architecture-specific compiler flags.
-- Compiler and toolchain versions.
-- Plugin metadata.
-- MPC touchscreen assets.
-- Q-Link configuration.
-- Preset format documentation.
-- Installation instructions.
-- Release screenshots.
-- Exact source commit or Git tag.
-- SHA-256 checksums.
-- Hardware compatibility and testing results.
+The DSP engine, parameter definitions, and portable preset format should
+remain independent of the MPC-specific wrapper and skin.
 
-Releases will use versioned source tags to ensure that published binaries can be traced back to their exact source.
+The intended future desktop targets are:
 
-## 11. Development Roadmap
+  Platform   Planned format
+  ---------- -----------------------------------------------------
+  Windows    Desktop plugin format to be selected during porting
+  macOS      Desktop plugin format to be selected during porting
+  Linux      Desktop plugin format to be selected during porting
 
-| Milestone | Description |
-|---|---|
-| 0.1 | Initial DSP engine and parameter architecture |
-| 0.2 | Complete processing chain |
-| 0.3 | Portable preset engine |
-| 0.4 | Native MPC interface and Q-Link integration |
-| 0.5 | Gen 1 ARM32 build and hardware testing |
-| 0.6 | Gen 2 AArch64 build and hardware testing |
-| 0.7 | Hakai firmware compatibility validation |
-| 0.8 | Performance optimization and release testing |
-| 1.0 | Initial production release |
+The Open MPC project documents a VST3 desktop port path for local DAW
+use. That path may be evaluated when desktop development begins. Desktop
+format selection and host compatibility will be documented separately.
+
+Desktop ports must preserve the same DSP behavior, parameter meanings,
+and portable preset compatibility as the MPC version.
+
+## 15. Development Roadmap
+
+  -----------------------------------------------------------------------
+  Milestone                           Description
+  ----------------------------------- -----------------------------------
+  0.1                                 Open MPC project integration,
+                                      engine skeleton, and parameter
+                                      architecture
+
+  0.2                                 Complete DSP processing chain
+
+  0.3                                 Portable preset engine and MPC
+                                      preset/state integration
+
+  0.4                                 MPC touchscreen interface, Q-Link
+                                      mapping, meters, and visualizations
+
+  0.5                                 Open MPC PC-side testing and DSP
+                                      validation
+
+  0.6                                 Gen 1 ARMHF build, benchmarking,
+                                      and physical-device testing
+
+  0.7                                 Gen 2 AArch64 build, benchmarking,
+                                      and physical-device testing
+
+  0.8                                 Firmware compatibility, release
+                                      packaging, and catalog preparation
+
+  1.0                                 Initial MPC production release
+
+  2.x                                 Windows, macOS, and Linux desktop
+                                      ports
+  -----------------------------------------------------------------------
 
 Milestones may be adjusted as development and hardware testing progress.
 
-## 12. Project References
+## 16. Project References
 
-The following projects and resources guide development.
-
-**Open MPC Plugin Catalog**  
+**Open MPC Plugin Catalog**\
 https://open-mpc.github.io/
 
-**Open MPC VST Plugin Development Repository**  
+**Open MPC Build Guide**\
+https://open-mpc.github.io/build.html
+
+**Open MPC Plugin Development Repository**\
 https://github.com/open-mpc/mpc-vst-plugins
 
-**Airwindows LinuxVST Source Code**  
+**Open MPC Porting Documentation**\
+https://github.com/open-mpc/mpc-vst-plugins/blob/main/docs/PORTING.md
+
+**Open MPC Skin Studio Documentation**\
+https://github.com/open-mpc/mpc-vst-plugins/blob/main/docs/SKIN_STUDIO.md
+
+**Open MPC Compatibility Documentation**\
+https://github.com/open-mpc/mpc-vst-plugins/blob/main/docs/COMPATIBILITY.md
+
+**Open MPC Gen 2 Documentation**\
+https://github.com/open-mpc/mpc-vst-plugins/blob/main/docs/GEN2.md
+
+**Open MPC Release Documentation**\
+https://github.com/open-mpc/mpc-vst-plugins/blob/main/docs/RELEASING.md
+
+**Airwindows LinuxVST Source Code**\
 https://github.com/airwindows/airwindows/tree/master/plugins/LinuxVST/src
 
-These projects provide reference implementations, build tooling, plugin packaging conventions, and examples of native MPC plugin development.
+These references guide the native MPC plugin architecture, build and
+test process, touchscreen skin development, and future desktop-port
+evaluation.
 
----
+------------------------------------------------------------------------
 
-## 13. Project Status
+## 17. Project Status
 
-**CTRL Mixbus is currently in development.**
+**CTRL Mixbus is in development. The first target is native operation on
+Akai MPC standalone hardware.**
 
-The initial development phase will focus on the Windows desktop implementation, allowing the DSP engine and preset system to be fully developed and tested before moving to MPC hardware.
+The initial implementation will use the Open MPC toolchain to build and
+validate the native MPC VST2 plugin. Gen 1 ARMHF and Gen 2 AArch64
+builds will be treated as separate targets and tested on their
+respective hardware.
 
-The MPC implementation will subsequently use the same underlying DSP architecture, with platform-specific VST2 integration, touchscreen interfaces, and hardware optimizations.
+The desktop versions for Windows, macOS, and Linux will follow after the
+MPC implementation is stable. The shared DSP engine and portable preset
+format will be designed from the beginning to support those future
+ports.
 
-The ultimate goal is to provide a complete, self-contained, professional stereo processing solution that installs directly through the Open MPC ecosystem and operates natively on supported Akai MPC standalone hardware.
+The ultimate goal is to deliver a self-contained stereo mixing and
+processing solution that users can discover and install through the Open
+MPC Plugin Catalog or the Open MPC Plugin Manager.
 
-**CTRL Projects**  
-CTRL Mixbus
+**CTRL Projects**\
+**CTRL Mixbus**
