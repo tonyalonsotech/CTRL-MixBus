@@ -25,5 +25,5 @@ for t in $targets; do
   esac
   [ -f "$so" ] || { echo "$so missing: run tools/build_device.sh first" >&2; exit 1; }
   python3 "$SUB/tools/release.py" --so "$so" --skin "$SKIN" --entry build/pluginlist-entry.xml \
-    --version "$VERSION" --about "$ABOUT" -o dist
+    --version "$VERSION" --about "$ABOUT" --repo tonyalonsotech/CTRL-MixBus --license AGPL-3.0-only --id ctrl-mixbus -o dist
 done
