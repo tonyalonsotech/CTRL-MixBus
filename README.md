@@ -18,17 +18,15 @@ V1.0.1 - Initial build of all control device pages tested and working on MPC One
 
 V1.0.2 - Adjusted knob placement to reflect Q Link Mapping. Adjusted appearance to match layout. Grouped pages in a more logical manner.
 
+V1.0.3 - Corrected Filter representation to better match knob values. Corrected an issue when controlling the bypass switches with Q Link knobs. 
+
 ------------------------------------------------------------------------
 
 ## 1. Overview
 
-CTRL Mixbus is a professional stereo mixing and processing effect being
-developed first for Akai MPC standalone hardware.
+CTRL Mixbus is a professional stereo mixing and processing effect designed to streamline your workflow across three focused pages. Take control of input gain, stereo width, equalization, precision filtering, dynamic gating, and loudness maximization.
 
-Inspired by the workflow and functionality of professional DJ mixers,
-CTRL Mixbus combines essential mixing tools, a Pioneer DJM-900NXS2-style
-three-band isolator, adjustable filtering, stereo manipulation, and
-dynamics processing in one native MPC plugin.
+Featuring a versatile three-band isolator EQ, adjustable low-pass and high-pass filters, bass mono control, stereo manipulation, and independent processing stages, CTRL Mixbus puts the tools you need for detailed mix shaping and signal control right at your fingertips. Built natively for MPC, it delivers a comprehensive processing experience without relying on external hardware or software.
 
 The MPC implementation is the first and primary development target. The
 DSP engine, parameter model, preset format, and processing behavior will
