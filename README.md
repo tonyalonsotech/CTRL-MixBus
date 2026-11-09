@@ -20,7 +20,9 @@ V1.0.2 - Adjusted knob placement to reflect Q Link Mapping. Adjusted appearance 
 
 V1.0.3 - Corrected Filter representation to better match knob values. Corrected an issue where an audible pop is heard when changing the Filter slope.
 
-V1.0.4 - Adjust UI to match Tony Alonso Tech color scheme. Fixed an issue where filter slope display did not always match Q Link assigned values.
+V1.0.4 - Adjusted UI to match Tony Alonso Tech color scheme. Fixed an issue where filter slope display did not always match Q Link assigned values.
+
+V1.0.5 - Fixed an issue where On/Off switches would not always reflect assigned values, when adjusted using Q-Links. Updated skin.
 
 ------------------------------------------------------------------------
 
