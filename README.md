@@ -27,23 +27,24 @@ Built natively for MPC, CTRL Mixbus brings essential mixing, stereo processing, 
 ------------------------------------------------------------------------
 
 **Versions:**
-V1.0.0 - Input and Output stage created. Tested local installation on MPC One G2 successfully.
 
-V1.0.1 - Initial build of all control device pages tested and working on MPC One G2. CPU Load and Memory Load below 1% when used on Tube Synth Plugin with Air Compressor, Air Maximizer, and Air Delay in the FX Chain.
+V1.0.0 - Initial development build with input and output processing stages.
 
-V1.0.2 - Adjusted knob placement to reflect Q Link Mapping. Adjusted appearance to match layout. Grouped pages in a more logical manner.
+V1.0.1 - Completed the initial implementation of all control pages and verified device functionality and performance on MPC One G2.
 
-V1.0.3 - Corrected Filter representation to better match knob values. Corrected an issue where an audible pop is heard when changing the Filter slope.
+V1.0.2 - Reorganized the interface to align with Q-Link mapping and the audio signal chain. Added filter visualizations and integrated the Maximizer.
 
-V1.0.4 - Adjusted UI to match Tony Alonso Tech color scheme. Fixed an issue where filter slope display did not always match Q Link assigned values.
+V1.0.3 - Improved filter response visualization, corrected an audible click when adjusting filter settings, and refined metering and bypass behavior.
 
-V1.0.5 - Fixed an issue where On/Off switches would not always reflect assigned values, when adjusted using Q-Links. 
+V1.0.4 - Updated the interface to match the Tony Alonso Tech color scheme and improved Q-Link filter synchronization.
 
-V1.0.6 - Updated the skin to have more contrast for controls. 
+V1.0.5 - Improved on/off switch synchronization with Q-Link adjustments and refined Maximizer gain reduction metering.
 
-V1.0.7 - Fixed a Metering Issue where the input meters were not correctly reflecting the page stages.
+V1.0.6 - Completed skin development with improved contrast, updated knob textures, and clip indicators.
 
-V2.0.0 - This is the first release version. No major updates to the plugin itself. Plugin has been tested on MPC One G2 and MPC Live III, both running MPC OS 3.10. Package version changed to reflect plugin moving from beta into production. 
+V1.0.7 - Corrected input metering to accurately reflect signal levels at the Input Gain and Balance stages.
+
+V2.0.0 - First production release. Includes the finalized V1.0.7 build, packaged for MPC Gen 1 and Gen 2 devices. No additional plugin code changes.
 
 ------------------------------------------------------------------------
 
