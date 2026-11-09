@@ -3,3 +3,6 @@ presets/*.json
 __pycache__/
 *.o
 *.so
+
+# Release packages
+dist/
