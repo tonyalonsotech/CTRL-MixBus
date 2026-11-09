@@ -2,8 +2,8 @@
 ### Native Stereo Mixing and Processing Plugin for Akai MPC
 
 **Project:** CTRL Mixbus  
-**Plugin Type:** VST2 Audio Effect  
-**Developer:** CTRL Projects  
+**Plugin Type:** VST Audio Effect  
+**Developer:** Tony Alonso Tech
 **Primary Platform:** Akai MPC Standalone  
 **Distribution:** [Open MPC Plugin Catalog](https://open-mpc.github.io/)  
 **Status:** In Development
@@ -14,7 +14,7 @@
 
 CTRL Mixbus is a professional stereo mixing and processing plugin designed for Akai MPC standalone hardware.
 
-Inspired by the workflow and functionality of professional DJ mixers, CTRL Mixbus combines essential mixing tools, a DJM-900NXS2-style three-band isolator, adjustable filtering, stereo manipulation, and dynamics processing into a single VST2 effect.
+Inspired by the workflow and functionality of professional DJ mixers, CTRL Mixbus combines essential mixing tools, a DJM style three-band isolator, adjustable filtering, stereo manipulation, and dynamics processing into a single VST effect.
 
 The plugin is being developed with a particular emphasis on:
 
@@ -34,8 +34,8 @@ CTRL Mixbus will provide separate builds for the two MPC hardware generations.
 
 | Hardware generation | Architecture | Target firmware |
 |---|---|---|
-| MPC Gen 1 | ARM32 / ARMHF | MPC OS 2.x / 3.x and supported Hakai firmware |
-| MPC Gen 2 | ARM64 / AArch64 | MPC OS 3.x and supported Hakai firmware |
+| MPC Gen 1 | ARM32 / ARMHF | MPC OS 2.x / 3.x |
+| MPC Gen 2 | ARM64 / AArch64 | MPC OS 3.x |
 
 ### Gen 1 Devices
 
@@ -44,6 +44,7 @@ Target hardware includes:
 - MPC Live
 - MPC Live II
 - MPC One
+- MPC One+
 - MPC X
 - MPC Key 61
 - Akai Force
@@ -55,7 +56,7 @@ Target hardware includes:
 - MPC Live III
 - MPC One G2
 - MPC Key 37 G2
-- Other compatible Gen 2 hardware as support becomes available.
+- Akai Force G2
 
 **Important:** Hardware and firmware compatibility will be individually tested and documented. A successful build for an architecture does not automatically constitute hardware compatibility.
 
@@ -64,8 +65,6 @@ Target hardware includes:
 The development process will prioritize compatibility with the Open MPC plugin toolchain and its established release requirements.
 
 Gen 1 builds will use a compatible ARMHF toolchain and glibc baseline. Gen 2 builds will use a separate AArch64 toolchain.
-
-Hakai firmware compatibility will be validated independently for both generations.
 
 ## 3. Signal Processing Architecture
 
@@ -129,8 +128,6 @@ Three independent frequency bands:
 - HIGH
 
 Each band will have independent level adjustment and full-kill capability.
-
-The crossover behavior and frequency response will be validated against the DJM-900NXS2 reference.
 
 The entire EQ section will have an independent bypass control.
 
@@ -372,8 +369,6 @@ The installer supports Windows, macOS, and Linux computers and can install compa
 Installation procedures will be documented for each supported firmware generation.
 
 MPC OS 2.x devices require a separate installation route because the Open MPC Plugin Manager is designed for MPC OS 3.x.
-
-Hakai-specific installation instructions will be provided if required.
 
 No manual firmware modification should be necessary for a standard CTRL Mixbus installation.
 
