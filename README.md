@@ -22,7 +22,11 @@ V1.0.3 - Corrected Filter representation to better match knob values. Corrected 
 
 V1.0.4 - Adjusted UI to match Tony Alonso Tech color scheme. Fixed an issue where filter slope display did not always match Q Link assigned values.
 
-V1.0.5 - Fixed an issue where On/Off switches would not always reflect assigned values, when adjusted using Q-Links. Updated skin.
+V1.0.5 - Fixed an issue where On/Off switches would not always reflect assigned values, when adjusted using Q-Links. 
+
+V1.0.6 - Updated the skin to have more contrast for controls. 
+
+V1.0.7 - Fixed a Metering Issue where the input meters were not correctly reflecting the page stages.
 
 ------------------------------------------------------------------------
 
@@ -30,7 +34,11 @@ V1.0.5 - Fixed an issue where On/Off switches would not always reflect assigned 
 
 CTRL Mixbus is a professional stereo mixing and processing effect designed to streamline your workflow across three focused pages. Take control of input gain, stereo width, equalization, precision filtering, dynamic gating, and loudness maximization.
 
-Featuring a versatile three-band isolator EQ, adjustable low-pass and high-pass filters, bass mono control, stereo manipulation, and independent processing stages, CTRL Mixbus puts the tools you need for detailed mix shaping and signal control right at your fingertips. Built natively for MPC, it delivers a comprehensive processing experience without relying on external hardware or software.
+Featuring a versatile three-band DJ EQ with selectable EQ and Isolator modes, adjustable low-pass and high-pass filters with resonance and curve shaping, bass width control, stereo manipulation, phase inversion, and independent processing stages, CTRL Mixbus provides the tools needed for detailed mix shaping and signal control. Fine-tune your stereo image with width, bass width, and balance adjustments, then refine your output with configurable gating and maximization for precise dynamic control and enhanced loudness.
+
+Dedicated input and output level meters, maximizer gain reduction monitoring, and visual filter displays provide real-time feedback throughout your signal chain. Integrated clipping indicators flash red to warn of excessive signal levels, helping you maintain control over your mix.
+
+Built natively for MPC, CTRL Mixbus brings essential mixing, stereo processing, tonal shaping, and dynamic control together in a streamlined interface designed for efficient workflow and hands-on operation, without relying on external hardware or software.
 
 
 
