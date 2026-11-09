@@ -18,7 +18,7 @@ V1.0.1 - Initial build of all control device pages tested and working on MPC One
 
 V1.0.2 - Adjusted knob placement to reflect Q Link Mapping. Adjusted appearance to match layout. Grouped pages in a more logical manner.
 
-V1.0.3 - Corrected Filter representation to better match knob values. Corrected an issue when controlling the bypass switches with Q Link knobs. 
+V1.0.3 - Corrected Filter representation to better match knob values. Corrected an issue where an audible pop is heard when changing the Filter slope.
 
 ------------------------------------------------------------------------
 
