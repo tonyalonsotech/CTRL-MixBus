@@ -16,6 +16,8 @@ V1.0.0 - Input and Output stage created. Tested local installation on MPC One G2
 
 V1.0.1 - Initial build of all control device pages tested and working on MPC One G2. CPU Load and Memory Load below 1% when used on Tube Synth Plugin with Air Compressor, Air Maximizer, and Air Delay in the FX Chain.
 
+V1.0.2 - Adjusted knob placement to reflect Q Link Mapping. Adjusted appearance to match layout. Grouped pages in a more logical manner.
+
 ------------------------------------------------------------------------
 
 ## 1. Overview
