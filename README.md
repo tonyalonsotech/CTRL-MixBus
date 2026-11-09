@@ -28,6 +28,8 @@ V1.0.6 - Updated the skin to have more contrast for controls.
 
 V1.0.7 - Fixed a Metering Issue where the input meters were not correctly reflecting the page stages.
 
+V2.0.0 - This is the first release version. No major updates to the plugin itself. Plugin has been tested on MPC One G2 and MPC Live III, both running MPC OS 3.10. Package version changed to reflect plugin moving from beta into production. 
+
 ------------------------------------------------------------------------
 
 ## Description
