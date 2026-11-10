@@ -2,7 +2,7 @@
 
 ## 2.0.1
 
-- **On/off switches are touchscreen only.** They are no longer on the Q-Links (their Q-Link slots are empty); they look as before.
+- **On/off switches are tap to engage and touchscreen only.** A tap turns a switch on or off (it was a slide). They are no longer on the Q-Links (their Q-Link slots are empty), and they look as before.
 - **Bottom switches line up.** The switch at the bottom of each INPUT and FILTER column now sits at the same height on both pages.
 - **DJ EQ knobs** use the house centre knob: a dot at 12 o'clock (0 dB), and an arc that grows left (cut) or right (boost).
 

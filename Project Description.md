@@ -30,7 +30,7 @@ V1.0.7 - Fixed a Metering Issue where the input meters were not correctly reflec
 
 V2.0.0 - This is the first release version. No major updates to the plugin itself. Plugin has been tested on MPC One G2 and MPC Live III, both running MPC OS 3.10. Package version changed to reflect plugin moving from beta into production. 
 
-V2.0.1 - On/Off switches are now touchscreen only and are no longer assigned to Q-Links. The bottom On/Off switches on the INPUT and FILTER pages now sit at the same height. The DJ EQ knobs (High, Mid, Low) now use a centre-origin ring.
+V2.0.1 - On/Off switches are now tap to engage, touchscreen only, and are no longer assigned to Q-Links. The bottom On/Off switches on the INPUT and FILTER pages now sit at the same height. The DJ EQ knobs (High, Mid, Low) now use a centre-origin ring.
 
 ------------------------------------------------------------------------
 
@@ -423,7 +423,7 @@ The production interface is organized into three pages:
 
 - No more than 16 rotary controls on any individual page.
 - All rotary parameters are controlled using the Q-Links.
-- ON/OFF switches are touchscreen only and are not assigned to Q-Links (their Q-Link slots are left empty).
+- ON/OFF switches are touchscreen only: a tap turns a switch on or off. They are not assigned to Q-Links (their Q-Link slots are left empty).
 - Q-Link assignments follow the currently selected page.
 - Displayed values and visual states update when parameters change.
 

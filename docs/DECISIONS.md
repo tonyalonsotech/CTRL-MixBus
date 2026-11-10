@@ -29,8 +29,10 @@
   maximizer meters | MAXIMIZER, with no side meters (the middle ones show input and output); the maximizer stays on Q-Link bank B
   although it is the third column. Column titles are centred (a frame without a title plus a centred text line, since the
   renderer draws frame titles left-aligned).
-- **Switches are sliders.** Every on/off switch is a short vertical slider (up = on), dragged by touch, not a tap
-  toggle (1.0.4; since 2026-11-10 it is touchscreen only, no longer on a Q-Link, and looks as before). The bottom switch of
+- **Switches are tap toggles (2.0.1).** Every on/off switch is touchscreen only, no longer on a Q-Link, and a tap turns it on or
+  off. It keeps the look of the 1.0.4-2.0.0 short vertical slider (up = on): `art/switch_on.png` / `switch_off.png` are that
+  slider's top and bottom frames (`tools/gen_switch_art.py`). From 1.0.4 to 2.0.0 it was a slider dragged or turned like a knob,
+  not a tap toggle, for the Q-Link reasons below. The bottom switch of
   every INPUT and FILTER column sits at one height (`SW_BOTTOM_TOP` in `tools/gen_layout.py`). The DJ EQ knobs use the house
   centre knob (`art/knob_center_strip.png`: a dot at 12 o'clock, an arc growing left or right). Its parameter is a plain 0..1 control (`SW` in `dj_params.def`), on from 0.5 (Q-Link 64-127), kept exactly as
   the host sends it (1.0.5). A two-option parameter could not work: the wrapper snaps a Q-Link move to the next option, so the

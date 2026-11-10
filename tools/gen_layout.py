@@ -12,8 +12,9 @@ Three pages (INPUT, FILTER, OUTPUT). Rules the pages follow (see docs/DECISIONS.
     that heads a filter column is not on a Q-Link either. The slope buttons (12..BRICK)
     are for touch; their Q-Link turns lp_crv / hp_crv instead, which the engine turns into the slope (src/engine/dj_params.def),
     so the buttons follow a Q-Link exactly;
-  * every switch is a short vertical SLIDER (up = on), moved by touch only (it looks as it did when it was on a Q-Link);
-    every "_on" switch is up while its stage processes and down while it is bypassed. The switch at the bottom of each INPUT
+  * every switch is a TAP toggle (2.0.1: a tap turns it on or off; until 2.0.0 it was a slider dragged up or down), drawn as the
+    old short vertical slider: art/switch_on.png (thumb up) and art/switch_off.png (thumb down), cut from that slider's filmstrip
+    by tools/gen_switch_art.py; every "_on" switch is up while its stage processes and down while it is bypassed. The switch at the bottom of each INPUT
     and FILTER column sits at one height, SW_BOTTOM_TOP, on both pages;
   * the DJ EQ knobs (HIGH, MID, LOW: 0 dB in the middle) use the house centre knob, art/knob_center_strip.png: a dot at
     12 o'clock, an arc growing left or right of it (tools/gen_knob_center.py);
@@ -66,7 +67,7 @@ PAGE_ART = {"INPUT": "art/page_input.png", "FILTER": "art/page_filter.png", "OUT
 R = 35                                          # knob radius: 2R + 8 = 78, the size of the knob strips' frames
 KNOB_STRIP = "art/knob_strip.png"               # the user's knob (value ring), 128 frames
 KNOB_FRAMES = 128
-SW_W, SW_H = 28, 56                             # a switch slider; its touch box is 130 x (SW_H + 56): name and value text below
+SW_W, SW_H = 28, 56                             # a switch picture (art/switch_*.png); its name below it
 ART_LABEL = "ff00ff"                            # the labels' colour in the page pictures (IN / REDUCTION / OUT on OUTPUT)
 BAL_STRIP = "art/knob_plain_strip.png"          # the user's knob without the value ring, 128 frames
 KNOB_CENTER = "art/knob_center_strip.png"       # the house centre knob (EQ bands): a dot at 12 o'clock, arc left or right
@@ -124,7 +125,9 @@ def knob(cx, cy, key, label, strip=KNOB_STRIP):
 
 
 def switch(cx, top, key, label):
-    return 'slider_v cx=%d cy=%d w=%d h=%d label="%s" key=%s' % (cx, top + SW_H // 2, SW_W, SW_H, label, key)
+    """An ON/OFF switch: a tap toggle, touchscreen only (its place in the page's qlinks line is "-")."""
+    return 'toggle cx=%d cy=%d w=%d h=%d label="%s" key=%s img=art/switch_off.png img_on=art/switch_on.png' % (
+        cx, top + SW_H // 2, SW_W, SW_H, label, key)
 
 
 def readout(cx, cy, key):
