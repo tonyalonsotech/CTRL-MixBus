@@ -2,7 +2,7 @@
   "name": "CTRL MixBus",
   "vendor": "CTRL",
   "uid": "DjUS",
-  "version": 2000,
+  "version": 2010,
   "so": "ctrl_mixbus.so",
   "effect": true,
   "params": "params.json",

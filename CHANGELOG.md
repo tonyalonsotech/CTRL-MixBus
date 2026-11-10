@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1
+
+- **On/off switches are touchscreen only.** They are no longer on the Q-Links (their Q-Link slots are empty); they look as before.
+- **Bottom switches line up.** The switch at the bottom of each INPUT and FILTER column now sits at the same height on both pages.
+- **DJ EQ knobs** use the house centre knob: a dot at 12 o'clock (0 dB), and an arc that grows left (cut) or right (boost).
+
 ## 2.0.0 (first release)
 
 1.0.7 as tested on an MPC One Gen 2 (filters, EQ and metering checked in Ableton with pink noise), released for Gen 2

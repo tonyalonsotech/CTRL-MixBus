@@ -5,7 +5,7 @@
 
 All are DJ_METER_FRAMES (21) frames stacked down, one bar 36 px wide per frame:
   meter.png       540 px tall: the full-height input/output meters at the far left and right of the INPUT and FILTER pages.
-  meter_s.png     520 px tall: the same bar, for the maximizer's meter column on the GATE page.
+  meter_s.png     520 px tall: the same bar, for the maximizer's meter column on the OUTPUT page.
                   Level bars: 20 segments lit from the BOTTOM, 3 dB each over -60..0 dBFS (the range of src/dsp/dj_meter.h): green to
                   -12 dB, amber to -3 dB, red above. Frame n = n segments lit.
   meter_gr_s.png  520 px tall: 20 segments lit from the TOP, 1 dB each, from 2 dB before limiting (DJ_GR_START_DB) to 18 dB of

@@ -30,6 +30,8 @@ V1.0.7 - Fixed a Metering Issue where the input meters were not correctly reflec
 
 V2.0.0 - This is the first release version. No major updates to the plugin itself. Plugin has been tested on MPC One G2 and MPC Live III, both running MPC OS 3.10. Package version changed to reflect plugin moving from beta into production. 
 
+V2.0.1 - On/Off switches are now touchscreen only and are no longer assigned to Q-Links. The bottom On/Off switches on the INPUT and FILTER pages now sit at the same height. The DJ EQ knobs (High, Mid, Low) now use a centre-origin ring.
+
 ------------------------------------------------------------------------
 
 ## Description
@@ -114,7 +116,7 @@ CTRL Mixbus is a professional stereo mixing and processing effect designed to br
 
 The plugin provides input gain, phase inversion, stereo width, bass mono control, balance, a three-band isolator EQ, adjustable low-pass and high-pass filters, noise gating, output level control, and loudness maximization.
 
-CTRL Mixbus is available in three production distributions, all at version **2.0.0**:
+CTRL Mixbus is available in three production distributions. The MPC distribution is at version **2.0.1**; the desktop VST3 distributions are at version **2.0.0**:
 
 | Distribution | Target | Architecture / Format |
 |---|---|---|
@@ -412,7 +414,7 @@ CTRL Mixbus includes a dedicated native MPC touchscreen interface designed aroun
 
 The production interface is organized into three pages:
 
-1. MAIN
+1. INPUT
 2. FILTER
 3. OUTPUT
 
@@ -420,13 +422,16 @@ The production interface is organized into three pages:
 ### 5.1 Q-Link Rules
 
 - No more than 16 rotary controls on any individual page.
-- All parameters are controlled using the Q-Links.
+- All rotary parameters are controlled using the Q-Links.
+- ON/OFF switches are touchscreen only and are not assigned to Q-Links (their Q-Link slots are left empty).
 - Q-Link assignments follow the currently selected page.
 - Displayed values and visual states update when parameters change.
 
 Meters, graphs, labels, and touchscreen switches do not consume rotary assignments.
 
 The vertical arrangement of four controls applies to rotary control groups. It does not require touchscreen switches or other interface elements to follow the same arrangement.
+
+On the INPUT and FILTER pages, the bottom ON/OFF switch of every column sits at the same height.
 
 
 ### 5.2 Visual Feedback
@@ -461,6 +466,8 @@ The established color palette is:
 | Borders | `#ffffff` |
 | Knob bodies | `#8a52e8` |
 | Knob indicators | `#ffffff` |
+
+The DJ EQ knobs (High, Mid, Low) use a centre-origin ring: a dot at 12 o'clock marks 0 dB, and the ring grows to the left for a cut and to the right for a boost.
 
 The theme should remain consistent across the MPC skin assets and other plugin interface assets where applicable.
 
@@ -546,11 +553,11 @@ Desktop packaging must not be confused with the native MPC VST2 package structur
 
 ### 7.3 Release Versions
 
-The current production release is version **2.0.0** across all three distribution types.
+The current production release is version **2.0.1** for the MPC distribution and **2.0.0** for the desktop VST3 distributions.
 
 | Release Package | Version |
 |---|---|
-| MPC Gen 1 and Gen 2 | 2.0.0 |
+| MPC Gen 1 and Gen 2 | 2.0.1 |
 | Linux VST3 | 2.0.0 |
 | Windows VST3 | 2.0.0 |
 

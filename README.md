@@ -46,6 +46,8 @@ V1.0.7 - Corrected input metering to accurately reflect signal levels at the Inp
 
 V2.0.0 - First production release. Includes the finalized V1.0.7 build, packaged for MPC Gen 1 and Gen 2 devices. No additional plugin code changes.
 
+V2.0.1 - On/off switches are now touchscreen only (removed from the Q-Links), the bottom switches on the INPUT and FILTER pages line up at the same height, and the DJ EQ knobs show a centre-origin ring.
+
 ------------------------------------------------------------------------
 
 

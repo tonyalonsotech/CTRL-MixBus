@@ -8,12 +8,15 @@ in one place.
 Three pages (INPUT, FILTER, OUTPUT). Rules the pages follow (see docs/DECISIONS.md):
   * every page is three columns of controls stacked VERTICALLY, because the Q-Links are a vertical column of four: one column
     on the screen = one Q-Link bank (A, B, C), top control = Q-Link 1 ... fourth = Q-Link 4. Switches (bypass, invert) are
-    members of the banks too; the picture/selector that heads a filter column is not on a Q-Link. The slope buttons (12..BRICK)
+    NOT on the Q-Links (2026-11-10): their place in a page's qlinks line is "-", they are touchscreen only; the picture/selector
+    that heads a filter column is not on a Q-Link either. The slope buttons (12..BRICK)
     are for touch; their Q-Link turns lp_crv / hp_crv instead, which the engine turns into the slope (src/engine/dj_params.def),
     so the buttons follow a Q-Link exactly;
-  * every switch is a short vertical SLIDER (up = on), turned like a knob by touch drag or Q-Link, not a tap toggle (1.0.3:
-    trying whether the tap toggle is what kept the screen from following a Q-Link); every "_on" switch is up while its stage
-    processes and down while it is bypassed;
+  * every switch is a short vertical SLIDER (up = on), moved by touch only (it looks as it did when it was on a Q-Link);
+    every "_on" switch is up while its stage processes and down while it is bypassed. The switch at the bottom of each INPUT
+    and FILTER column sits at one height, SW_BOTTOM_TOP, on both pages;
+  * the DJ EQ knobs (HIGH, MID, LOW: 0 dB in the middle) use the house centre knob, art/knob_center_strip.png: a dot at
+    12 o'clock, an arc growing left or right of it (tools/gen_knob_center.py);
   * INPUT and FILTER: the input AND output meters stand side by side at the far LEFT (the input meter is the page's own:
     INPUT after the gain knob, before the phase invert; FILTER after balance, before the DJ EQ), so both stay visible while MPC's Q-Link
     overlay covers the right of the screen; under every meter pair its dB number (the peak, held 1 s: two filmstrips side by
@@ -66,6 +69,9 @@ KNOB_FRAMES = 128
 SW_W, SW_H = 28, 56                             # a switch slider; its touch box is 130 x (SW_H + 56): name and value text below
 ART_LABEL = "ff00ff"                            # the labels' colour in the page pictures (IN / REDUCTION / OUT on OUTPUT)
 BAL_STRIP = "art/knob_plain_strip.png"          # the user's knob without the value ring, 128 frames
+KNOB_CENTER = "art/knob_center_strip.png"       # the house centre knob (EQ bands): a dot at 12 o'clock, arc left or right
+SW_BOTTOM_TOP = 582                             # top of the bottom switch in every INPUT / FILTER column (slider cy = 610):
+                                                # the DJ EQ column's height, the lowest that clears its LOW knob's value text
 
 # INPUT / FILTER side meters: IN pair, then OUT pair, at the far left
 IN_CX, OUT_CX = 50, 144                         # pair centres; bars 20 px either side
@@ -171,19 +177,22 @@ def build():
     cxs = [x + COL_W // 2 for x in cols]
     L += tab("INPUT")
     L += frame(cols[0], "GAIN + PHASE")
-    L += stack(cxs[0], even(BODY_Y, 138, [("knob", "in_gain", "GAIN"), ("sw", "in_on", "GAIN BYPASS"), ("sw", "ph_inv", "PHASE INVERT"), ("sw", "ph_on", "PHASE BYPASS")]))
+    L += stack(cxs[0], even(BODY_Y, 138, [("knob", "in_gain", "GAIN"), ("sw", "in_on", "GAIN BYPASS"), ("sw", "ph_inv", "PHASE INVERT")]) +
+               [(SW_BOTTOM_TOP, ("sw", "ph_on", "PHASE BYPASS"))])
     L += frame(cols[1], "WIDTH + BASS MONO")
-    L += stack(cxs[1], even(BODY_Y, 138, [("knob", "width", "WIDTH"), ("sw", "wd_on", "WIDTH BYPASS"), ("knob", "bm_freq", "BASS FREQ"), ("sw", "bm_on", "BASS MONO BYPASS")]))
+    L += stack(cxs[1], even(BODY_Y, 138, [("knob", "width", "WIDTH"), ("sw", "wd_on", "WIDTH BYPASS"), ("knob", "bm_freq", "BASS FREQ")]) +
+               [(SW_BOTTOM_TOP, ("sw", "bm_on", "BASS MONO BYPASS"))])
     L += frame(cols[2], "BALANCE")
     L += stack(cxs[2], even(BODY_Y, 138, [("knob", "balance", "BALANCE", BAL_STRIP), ("sw", "bal_on", "BALANCE BYPASS")]))
     L += meters()
-    L.append('qlinks "INPUT" = in_gain,in_on,ph_inv,ph_on,width,wd_on,bm_freq,bm_on,balance,bal_on,-,-')
+    L.append('qlinks "INPUT" = in_gain,-,-,-,width,-,bm_freq,-,balance,-,-,-')
 
     # ---------------------------------------------------------------- FILTER (EQ | low-pass | high-pass)
     L += tab("FILTER")
     L += frame(cols[0], "DJ EQ")
     L.append("enum_h cx=%d cy=%d sw=150 sh=40 key=eq_mode" % (cxs[0], BODY_Y + 24))
-    L += stack(cxs[0], even(BODY_Y + 52, 128, [("knob", "eq_high", "HIGH"), ("knob", "eq_mid", "MID"), ("knob", "eq_low", "LOW")]) + [(BODY_Y + 52 + 3 * 128 + 2, ("sw", "eq_on", "EQ BYPASS"))])
+    L += stack(cxs[0], even(BODY_Y + 52, 128, [("knob", "eq_high", "HIGH", KNOB_CENTER), ("knob", "eq_mid", "MID", KNOB_CENTER),
+                                                    ("knob", "eq_low", "LOW", KNOB_CENTER)]) + [(SW_BOTTOM_TOP, ("sw", "eq_on", "EQ BYPASS"))])
     for i, (p, name) in enumerate((("lp", "LOW-PASS"), ("hp", "HIGH-PASS")), start=1):
         L += frame(cols[i], name)
         # the response curve: one filmstrip per slope, the one for the current slope shown (when=); the engine picks the frame
@@ -193,9 +202,9 @@ def build():
                      % (cxs[i], BODY_Y + 34, VIEW_W, VIEW_H, p, p, sl.lower(), VIEW_FRAMES, p, sl))
         # 6 x 50 + 10 = 310 px inside the 336 px column (enum_h sizes by sw=, not w=)
         L += stack(cxs[i], even(BODY_Y + 76, 142, [("knob", p + "_cut", "CUTOFF"), ("knob", p + "_res", "RESONANCE")]) +
-                   [(BODY_Y + 76 + 2 * 142 + 4, ("enum", p + "_curve", 50, 34)), (BODY_Y + 76 + 2 * 142 + 4 + 34 + 26, ("sw", p + "_on", "%s BYPASS" % p.upper()))])
+                   [(BODY_Y + 76 + 2 * 142 + 4, ("enum", p + "_curve", 50, 34)), (SW_BOTTOM_TOP, ("sw", p + "_on", "%s BYPASS" % p.upper()))])
     L += meters("fin")
-    L.append('qlinks "FILTER" = eq_high,eq_mid,eq_low,eq_on,lp_cut,lp_res,lp_crv,lp_on,hp_cut,hp_res,hp_crv,hp_on')
+    L.append('qlinks "FILTER" = eq_high,eq_mid,eq_low,-,lp_cut,lp_res,lp_crv,-,hp_cut,hp_res,hp_crv,-')
 
     # ---------------------------------------------------------------- OUTPUT: GATE | maximizer meters | MAXIMIZER
     cols = COL_X_PLAIN

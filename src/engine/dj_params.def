@@ -50,7 +50,7 @@ DJP(HP_RES,   "hp_res",    "HP Reso",   KNOB,  0.0,  "")
 DJP(HP_CURVE, "hp_curve",  "HP Slope",  OPT,   0,    "12|24|36|48|96|BRICK")
 DJP(HP_ON,    "hp_on",     "HP On",     SW,  1.0,    "")
 
-/* ---- GATE page: gate, then the maximizer ---- */
+/* ---- OUTPUT page: gate, then the maximizer ---- */
 DJP(GT_THR,   "gt_thr",    "Gate Thr",  KNOB,  0.0,  "")     /* 0 = -80 dB = gate off */
 DJP(GT_ATT,   "gt_att",    "Gate Atk",  KNOB,  0.37, "")
 DJP(GT_HOLD,  "gt_hold",   "Gate Hold", KNOB,  0.10, "")

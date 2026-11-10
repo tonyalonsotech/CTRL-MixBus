@@ -5,7 +5,7 @@
 - **Real-time rules.** No allocation, file access or blocking in `create`-after, `set_param`, `get_param` or `process`.
   Preset I/O runs on a worker thread; results are picked up by a non-blocking trylock.
 - **Stable parameters.** One X-macro list (`dj_params.def`), append-only `params.lock`. Q-Link order follows the UI
-  pages, with at most 16 controls per page; switches are on the Q-Links too.
+  pages, with at most 16 controls per page; switches are touchscreen only, not on the Q-Links (2026-11-10).
 - **No audible stepping.** Every continuous control and every bypass is smoothed. Bypass is a true DSP bypass
   (cross-faded in and out), not a mute. A filter slope change never mutes either: the new slope warms up unheard beside the old one
   for 10 ms, then crossfades in over 25 ms (1.0.3; 0.2.0 ducked for ~4 ms and restarted the filter, which clicked).
@@ -23,14 +23,16 @@
   the filter response are filmstrips; the filter curves are measured from the real filter code at build time.
   The plugin reports a frame position and the skin picks the picture.
 - **Pages and Q-Links.** Three pages (INPUT, FILTER, OUTPUT), each three columns of controls stacked vertically, because the Q-Links
-  are a vertical column of four: one column = one Q-Link bank (A, B, C), top control = Q-Link 1. Switches are bank members too;
-  the EQ mode selector and the filter pictures head their column and are not on a Q-Link. Full-height input meters at the far left,
+  are a vertical column of four: one column = one Q-Link bank (A, B, C), top control = Q-Link 1. Switches are not on the Q-Links
+  (their slots are "-", 2026-11-10); the EQ mode selector and the filter pictures head their column and are not on a Q-Link. Full-height input meters at the far left,
   output meters beside them, on INPUT and FILTER (left, so MPC's Q-Link overlay on the right never hides them). OUTPUT is GATE |
   maximizer meters | MAXIMIZER, with no side meters (the middle ones show input and output); the maximizer stays on Q-Link bank B
   although it is the third column. Column titles are centred (a frame without a title plus a centred text line, since the
   renderer draws frame titles left-aligned).
-- **Switches are sliders.** Every on/off switch is a short vertical slider (up = on), dragged or turned like a knob, not a tap
-  toggle (1.0.4). Its parameter is a plain 0..1 control (`SW` in `dj_params.def`), on from 0.5 (Q-Link 64-127), kept exactly as
+- **Switches are sliders.** Every on/off switch is a short vertical slider (up = on), dragged by touch, not a tap
+  toggle (1.0.4; since 2026-11-10 it is touchscreen only, no longer on a Q-Link, and looks as before). The bottom switch of
+  every INPUT and FILTER column sits at one height (`SW_BOTTOM_TOP` in `tools/gen_layout.py`). The DJ EQ knobs use the house
+  centre knob (`art/knob_center_strip.png`: a dot at 12 o'clock, an arc growing left or right). Its parameter is a plain 0..1 control (`SW` in `dj_params.def`), on from 0.5 (Q-Link 64-127), kept exactly as
   the host sends it (1.0.5). A two-option parameter could not work: the wrapper snaps a Q-Link move to the next option, so the
   switch flipped fully on the first click while MPC kept the in-between value, and the Q-Link and the slider disagreed.
 - **Filter slope on a Q-Link.** The Q-Link turns `lp_crv`/`hp_crv`, a plain 0..1 control that MPC keeps as sent; the engine
