@@ -3,7 +3,9 @@
 #   tools/make_release.sh            both zips: dist/CTRL-MixBus-<version>-mpc-aarch64.zip (Gen 2) and -mpc-armv7.zip (Gen 1)
 #   tools/make_release.sh aarch64    just the Gen 2 zip
 # The version comes from vst.json ("version": major*1000 + minor*100 + patch*10, e.g. 1030 = 1.0.3), so the zip, the
-# plugin's own version and the skin's version.xml always agree.
+# plugin's own version and the skin's version.xml always agree. It also points the catalog entry's screenshot
+# (catalog/ctrl-mixbus.json) at the release tag v<version>, so the Open MPC card shows the picture of that release: commit
+# docs/preview.png before tagging, and send the changed entry with the catalog PR for the release.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 SUB="${MPC_VST_PLUGINS:-}"
@@ -27,3 +29,8 @@ for t in $targets; do
   python3 "$SUB/tools/release.py" --so "$so" --skin "$SKIN" --entry build/pluginlist-entry.xml \
     --version "$VERSION" --about "$ABOUT" --repo tonyalonsotech/CTRL-MixBus --license AGPL-3.0-only --id ctrl-mixbus -o dist
 done
+
+# the catalog card's screenshot follows the release tag, never main (Open MPC maintainers' request, 2.0.0)
+sed -i -E "s#(raw\.githubusercontent\.com/tonyalonsotech/CTRL-MixBus/)[^/]+(/docs/preview\.png)#\1v$VERSION\2#" catalog/ctrl-mixbus.json
+grep -q "/v$VERSION/docs/preview.png" catalog/ctrl-mixbus.json || { echo "catalog/ctrl-mixbus.json: screenshot not set to v$VERSION" >&2; exit 1; }
+echo "catalog screenshot: v$VERSION (tag v$VERSION must contain docs/preview.png; include catalog/ctrl-mixbus.json in the catalog PR)"
