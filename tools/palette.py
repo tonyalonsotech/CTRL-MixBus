@@ -17,6 +17,17 @@ GRID = "5a2360"        # filter display grid lines, knob track ring
 ZERO = "8a4a90"        # the filter display's 0 dB line, the "bypassed" flat line
 CLIP = "ff0000"        # a meter's border at full scale (the top frame), a clip light (2026-11-09 skin edit)
 
+# buttons (the user's call, 2026-11-12, from CTRL Giant 1.2.2-1.2.3): the ON/OFF switches are rounded SQUARE buttons reading ON, and
+# every other button (option buttons, trigger buttons) has the same look: rounded (BTN_RADIUS, the corners of CTRL Giant's RESET PEAK),
+# off a dimmed fill with slightly darker letters, on (selected) a brighter fill with white letters, no gradient, no shadow
+BTN_ON = "8a52e8"      # = KNOB: on, selected, and a trigger button at rest
+BTN_ON_TEXT = "ffffff"
+BTN_OFF = "58217e"     # off / not selected: KNOB dimmed 60 % toward BG
+BTN_OFF_TEXT = "c9b6d0"
+BTN_PRESS = "a47af0"   # a trigger button while pressed: KNOB a little brighter
+BTN_RADIUS = 8
+OPTION = "2a002b"      # a menu option's fill (and a closed menu's box): a little darker than BG, the open menu panel's fill
+
 
 def rgb(hexstr):
     return tuple(int(hexstr[i:i + 2], 16) for i in (0, 2, 4))

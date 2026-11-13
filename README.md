@@ -1,6 +1,6 @@
 # CTRL Mixbus
 
-### Native Stereo Mixing and Processing Plugin for Akai MPC
+### tereo Mixing and Processing Plugin
 
 **Project:** CTRL Mixbus\
 **Developer:** Tony Alonso Tech\
@@ -46,7 +46,15 @@ V1.0.7 - Corrected input metering to accurately reflect signal levels at the Inp
 
 V2.0.0 - First production release. Includes the finalized V1.0.7 build, packaged for MPC Gen 1 and Gen 2 devices. No additional plugin code changes.
 
-V2.0.1 - On/off switches are now tap to engage and touchscreen only (removed from the Q-Links), the bottom switches on the INPUT and FILTER pages line up at the same height, and the DJ EQ knobs show a centre-origin ring.
+V2.0.1 - On/off switches are now tap to engage and touchscreen only (removed from the Q-Links). The bottom switches on the INPUT and FILTER pages line up at the same height. The DJ EQ knobs show a center-origin ring.
+
+V2.0.2 (beta) - A new UTILITY page has now been added. This included DSP, Signal, and About information. Switches have been changed to rounded ON buttons labelled ON/OFF. Some control labels have been modified for length.
+
+V2.0.3 (beta) - Q-Link rings show which controls the Q-Links are driving. On the FILTER page, each filter's slope is a 3 x 2 button grid under its curve display. CUTOFF and RESONANCE line up with the DJ EQ's MID and LOW knobs. The filters' Q-Links run CURVE, CUTOFF, RESONANCE top to bottom. Updated for MPC 3.10.1 compatibility.
+
+V2.0.4 (beta) - FILTER page has been re-arranged to follow the same flow as CTRL Duck. This allows the Q-Link overlay to populate on screen without covering the Filter Curve Displays. Q-Link mappings have been adjusted to match the new layout.
+
+V2.1.0 - This is the release version including all changes made in beta versions 2.0.2, 2.0.3, and 2.0.4.
 
 ------------------------------------------------------------------------
 

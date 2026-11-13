@@ -2,7 +2,7 @@
   "name": "CTRL MixBus",
   "vendor": "CTRL",
   "uid": "DjUS",
-  "version": 2010,
+  "version": 2100,
   "so": "ctrl_mixbus.so",
   "effect": true,
   "params": "params.json",
@@ -14,7 +14,8 @@
   ],
   "defines": {
     "HAS_DISPLAY_REV": 1,
-    "DISPLAY_REV_NO_UPDATE": 1
+    "DISPLAY_REV_NO_UPDATE": 1,
+    "DISPLAY_REV_THREAD": 1
   },
   "build": {
     "root": ".",
@@ -39,5 +40,6 @@
       "-lm"
     ]
   },
-  "art": "html"
+  "art": "html",
+  "skin_post": "tools/skin_post.py"
 }

@@ -3,7 +3,8 @@
 ## Dependencies (all identified, nothing hidden)
 
 - The upstream wrapper and tooling are a git submodule: `third_party/mpc-vst-plugins`
-  (https://github.com/open-mpc/mpc-vst-plugins.git). **Pinned commit: `5432c834e4b9967900b4f2fbb89b0169b27fe350`.**
+  (https://github.com/open-mpc/mpc-vst-plugins.git). **Pinned commit: `20f91bf064633029c036c0a345f5ebdee888aca2`** (2026-11-13; it was `5432c83` up to 2.0.2).
+  `tools/build_device.sh` fetches and checks it out.
   Clone with `git clone --recurse-submodules`, or run `git submodule update --init`.
 - No firmware, SDK or proprietary file is needed or redistributed. The plugin is plain C11 plus libm.
 - Generated-art tools: Python 3, Pillow, numpy and gcc. These affect only the skin art and test checks, not the

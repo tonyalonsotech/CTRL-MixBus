@@ -15,6 +15,8 @@
  *         OPT   option list, options separated by |
  *         KNOB  0..1 on the wire; src/dsp/dj_taper.h gives units and on-screen text
  *         METER 0..1, driven by the engine (display only, never saved)
+ *         READ  a live text readout the engine writes (display only, never saved; the UTILITY page, 2.0.2)
+ *         TRIG  a momentary button (reads 0; a tap fires it)
  *   default: option index for TOG/OPT, position for KNOB and SW (SW: 1.0 = on, 0.0 = off). The defaults ARE the stock "Init" preset.
  *
  * "_on" = a stage's true-bypass switch, 1 = the stage processes, 0 = bypassed (the switch is lit while the stage works and
@@ -101,3 +103,18 @@ DJP(M_FIN_L,  "m_fin_l",   "Flt In L",  METER, 0,    "")
 DJP(M_FIN_R,  "m_fin_r",   "Flt In R",  METER, 0,    "")
 DJP(FIN_DB_I, "fin_db_i",  "Flt In dB", METER, 0,    "")
 DJP(FIN_DB_T, "fin_db_t",  "Flt In .1", METER, 0,    "")
+
+/* ---- 2.0.2: the UTILITY page (the user's call): the plugin's diagnostics, for debugging. Display only, never saved; appended (the
+ * list is released). DSP: its own time per block against the block (DSP LOAD), the highest since RESET PEAK, blocks that took longer
+ * than a block (OVERLOADS), version and device (BUILD). SIGNAL, since RESET: the highest peak at the plugin's input (before GAIN)
+ * and at its output, output samples beyond full scale (CLIPS), the maximizer's deepest reduction. */
+DJP(DSP_LOAD, "dsp_load",  "DSP Load",  READ,  0,    "")
+DJP(DSP_PEAK, "dsp_peak",  "DSP Peak",  READ,  0,    "")
+DJP(OVERLOADS,"overloads", "Overloads", READ,  0,    "")
+DJP(BUILD,    "build",     "Build",     READ,  0,    "")
+DJP(DIAG_RST, "diag_rst",  "Reset Peak", TRIG, 0,    "")
+DJP(IN_PEAK,  "in_peak",   "In Peak",   READ,  0,    "")
+DJP(OUT_PEAK, "out_peak",  "Out Peak",  READ,  0,    "")
+DJP(CLIPS,    "clips",     "Clips",     READ,  0,    "")
+DJP(MAX_GR,   "max_gr",    "Max Reduct", READ, 0,    "")
+DJP(SIG_RST,  "sig_rst",   "Reset Sig", TRIG,  0,    "")

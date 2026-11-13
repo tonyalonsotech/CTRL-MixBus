@@ -32,6 +32,7 @@ if [ "$MODE" = san ] && command -v python3 >/dev/null && python3 -c "import PIL"
   python3 "$ROOT/tools/gen_layout.py" --check
   python3 "$ROOT/tools/gen_meter_strip.py" --check
   python3 "$ROOT/tools/gen_readout_strip.py" --check
+  python3 "$ROOT/tools/gen_utility_art.py" --check
   if python3 -c "import numpy" 2>/dev/null; then
     python3 "$ROOT/tools/gen_filter_strips.py" --check   # ~30 s: measures the real filter code (needs gcc + numpy)
   else

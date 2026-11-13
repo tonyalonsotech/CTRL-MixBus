@@ -24,7 +24,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <time.h>
 #include "engine.h"
+#include "version.h"
 #include "../dsp/dj_simple.h"
 #include "../dsp/dj_bassmono.h"
 #include "../dsp/dj_eq.h"
@@ -43,7 +45,17 @@ enum {
 #undef DJP
     P_COUNT
 };
-typedef enum { K_TOG, K_OPT, K_KNOB, K_SW, K_METER } kind_t;
+typedef enum { K_TOG, K_OPT, K_KNOB, K_SW, K_METER, K_READ, K_TRIG } kind_t;
+/* a setting (saved, set by the host) -- not a display (METER, READ) or a button (TRIG) */
+#define IS_VALUE(k) ((k) == K_TOG || (k) == K_OPT || (k) == K_KNOB || (k) == K_SW)
+
+#if defined(__aarch64__)
+#define BUILD_GEN "GEN 2"            /* the aarch64 build: MPC Gen 2 */
+#elif defined(__arm__)
+#define BUILD_GEN "GEN 1"            /* the armv7 build: MPC Gen 1 */
+#else
+#define BUILD_GEN "DESKTOP"          /* a host test build */
+#endif
 typedef struct { const char *key; kind_t kind; double def; const char *opts; } pdef_t;
 static const pdef_t PDEF[P_COUNT] = {
 #define DJP(ID, key, name, kind, def, opts) { key, K_##kind, def, opts },
@@ -78,6 +90,12 @@ typedef struct {
     int last_frame[N_METER_FRAMES];
     unsigned rev;                    /* display_rev: bumped when a meter's filmstrip frame or a curve picture changed */
     int view[2];                     /* filter-curve strip frame of LP, HP (last reported, to know when display_rev must move) */
+    /* the UTILITY page (2.0.2): DSP -- this plugin's time per block against the block's length; SIGNAL -- peaks since RESET */
+    double load_us;                  /* smoothed, in us of a 128-frame block */
+    int load_shown, peak_shown, diag_frames;   /* tenths of a percent on screen; frames since the readings were updated */
+    unsigned overloads, clips;
+    float in_peak, out_peak, max_gr; /* linear peaks; the deepest reduction (dB) */
+    int in_shown, out_shown, gr_shown;   /* tenths of a dB on screen (-9999: none yet) */
 } inst_t;
 
 static int find_key(const char *key)
@@ -152,11 +170,12 @@ static void gate_apply(inst_t *s)
 static int crv_curve(double k) { int c = (int)floor(k * (DJ_FLT_NUM_CURVES - 1) + 0.5); return c < 0 ? 0 : c > DJ_FLT_NUM_CURVES - 1 ? DJ_FLT_NUM_CURVES - 1 : c; }
 static int crv_of(int curve_id) { return curve_id == P_LP_CURVE ? P_LP_CRV : P_HP_CRV; }
 static int curve_of(int crv_id) { return crv_id == P_LP_CRV ? P_LP_CURVE : P_HP_CURVE; }
-static int no_state(int id) { return PDEF[id].kind == K_METER || id == P_LP_CRV || id == P_HP_CRV; }   /* derived, never stored */
+static int no_state(int id) { return !IS_VALUE(PDEF[id].kind) || id == P_LP_CRV || id == P_HP_CRV; }   /* displays, buttons, derived: never stored */
 
 /* push parameter `id`'s value into the DSP modules (any thread that holds the engine lock) */
 static void apply(inst_t *s, int id)
 {
+    if (!IS_VALUE(PDEF[id].kind)) return;
     const double *v = s->v;
     switch (id) {
     case P_IN_ON: dj_xfade_set(&s->xf[S_IN], on(s, P_IN_ON)); break;
@@ -281,6 +300,7 @@ static void *create(const char *data_dir)
     dj_gate_init(&s->gate, DJ_FS); dj_max_init(&s->mx, DJ_FS);
     dj_meter_init(&s->min, DJ_FS); dj_meter_init(&s->mout, DJ_FS); dj_meter_init(&s->mxin, DJ_FS); dj_meter_init(&s->mfin, DJ_FS); dj_grmeter_init(&s->gr, DJ_FS);
     for (int i = 0; i < RD_COUNT; i++) dj_readout_init(&s->rd[i], DJ_FS);
+    s->in_shown = s->out_shown = -9999;                 /* UTILITY: no peak yet ("-inf dB") */
     s->rd[RD_GR].held_db = 0.0f;                        /* no reduction reads "0.0 dB", not "-inf" */
     for (int i = 0; i < S_COUNT; i++) dj_xfade_init(&s->xf[i], DJ_FS, BYPASS_FADE_MS, 1.0f);
     for (int i = 0; i < P_COUNT; i++) apply(s, i);
@@ -342,8 +362,8 @@ static void state_read(inst_t *s, const char *text)
     }
     nv[P_LP_CRV] = nv[P_LP_CURVE] / (DJ_FLT_NUM_CURVES - 1);                        /* the Q-Link slope controls follow */
     nv[P_HP_CRV] = nv[P_HP_CURVE] / (DJ_FLT_NUM_CURVES - 1);
-    for (int i = 0; i < P_COUNT; i++) if (PDEF[i].kind != K_METER) s->v[i] = nv[i];   /* assign all, then apply all: */
-    for (int i = 0; i < P_COUNT; i++) if (PDEF[i].kind != K_METER) apply(s, i);        /* a stage sees one consistent set */
+    for (int i = 0; i < P_COUNT; i++) if (IS_VALUE(PDEF[i].kind)) s->v[i] = nv[i];   /* assign all, then apply all: */
+    for (int i = 0; i < P_COUNT; i++) if (IS_VALUE(PDEF[i].kind)) apply(s, i);        /* a stage sees one consistent set */
     refresh_views(s);
     s->rev++;
 }
@@ -353,7 +373,15 @@ static void set_param(void *inst, const char *key, const char *val)
     inst_t *s = inst;
     if (!strcmp(key, "state")) { state_read(s, val); return; }
     int id = find_key(key);
-    if (id < 0 || PDEF[id].kind == K_METER) return;
+    if (id < 0 || PDEF[id].kind == K_METER || PDEF[id].kind == K_READ) return;
+    if (PDEF[id].kind == K_TRIG) {                                     /* a button: a tap fires it, it reads 0 again */
+        if (atof(val) >= 0.5) {
+            if (id == P_DIAG_RST) { s->peak_shown = s->load_shown; s->overloads = 0; }
+            if (id == P_SIG_RST) { s->in_peak = s->out_peak = s->max_gr = 0.0f; s->clips = 0; s->in_shown = s->out_shown = s->gr_shown = -9999; }
+            s->rev++;
+        }
+        return;
+    }
     double old = s->v[id];
     s->v[id] = parse_value(&PDEF[id], val);
     apply(s, id);
@@ -406,6 +434,41 @@ static int fmt_knob(const inst_t *s, int id, char *buf, int len)
     }
 }
 
+/* the UTILITY page's readouts (READ): their value text, and a number that moves whenever that text does (MPC redraws a readout
+ * only when its value moves) */
+static int fmt_db_peak(char *buf, int len, int tenths)
+{
+    if (tenths <= -9999) return snprintf(buf, (size_t)len, "-inf dB");
+    return snprintf(buf, (size_t)len, "%.1f dB", tenths / 10.0);
+}
+static int fmt_read(const inst_t *s, int id, char *buf, int len)
+{
+    switch (id) {
+    case P_DSP_LOAD: return snprintf(buf, (size_t)len, "%.1f %%", s->load_shown / 10.0);
+    case P_DSP_PEAK: return snprintf(buf, (size_t)len, "%.1f %%", s->peak_shown / 10.0);
+    case P_OVERLOADS: return snprintf(buf, (size_t)len, "%u", s->overloads);
+    case P_BUILD: return snprintf(buf, (size_t)len, "%s %s", PLUGIN_VERSION_TEXT, BUILD_GEN);
+    case P_IN_PEAK: return fmt_db_peak(buf, len, s->in_shown);
+    case P_OUT_PEAK: return fmt_db_peak(buf, len, s->out_shown);
+    case P_CLIPS: return snprintf(buf, (size_t)len, "%u", s->clips);
+    case P_MAX_GR: return s->gr_shown <= 0 ? snprintf(buf, (size_t)len, "0.0 dB") : snprintf(buf, (size_t)len, "-%.1f dB", s->gr_shown / 10.0);
+    default: return snprintf(buf, (size_t)len, "%s", "");
+    }
+}
+static double read_value(const inst_t *s, int id)
+{
+    switch (id) {
+    case P_DSP_LOAD: return (s->load_shown % 1000) / 1000.0;
+    case P_DSP_PEAK: return (s->peak_shown % 1000) / 1000.0;
+    case P_OVERLOADS: return (s->overloads % 1000) / 1000.0;
+    case P_IN_PEAK: return ((s->in_shown + 10000) % 1000) / 1000.0;
+    case P_OUT_PEAK: return ((s->out_shown + 10000) % 1000) / 1000.0;
+    case P_CLIPS: return (s->clips % 1000) / 1000.0;
+    case P_MAX_GR: return (s->gr_shown % 1000) / 1000.0;
+    default: return 0.0;
+    }
+}
+
 static int get_param(void *inst, const char *key, char *buf, int buf_len)
 {
     inst_t *s = inst;
@@ -418,6 +481,7 @@ static int get_param(void *inst, const char *key, char *buf, int buf_len)
         if (kl - 8 >= sizeof base) return 0;
         memcpy(base, key, kl - 8); base[kl - 8] = 0;
         int id = find_key(base);
+        if (id >= 0 && PDEF[id].kind == K_READ) return fmt_read(s, id, buf, buf_len);
         if (id < 0 || (PDEF[id].kind != K_KNOB && PDEF[id].kind != K_SW)) return 0;
         return fmt_knob(s, id, buf, buf_len);
     }
@@ -426,6 +490,8 @@ static int get_param(void *inst, const char *key, char *buf, int buf_len)
     switch (PDEF[id].kind) {
     case K_TOG: case K_OPT: return snprintf(buf, (size_t)buf_len, "%d", (int)s->v[id]);
     case K_KNOB: case K_SW: return snprintf(buf, (size_t)buf_len, "%g", s->v[id]);
+    case K_READ: return snprintf(buf, (size_t)buf_len, "%.4f", read_value(s, id));
+    case K_TRIG: return snprintf(buf, (size_t)buf_len, "0");
     case K_METER: {
         double v;
         switch (id) {
@@ -464,13 +530,41 @@ static int16_t to_i16(float x)
     return (int16_t)lrintf(v);
 }
 
+static double now_us(void)
+{
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return t.tv_sec * 1e6 + t.tv_nsec / 1e3;
+}
+static int tenths_db(float lin) { return lin <= 1e-6f ? -9999 : (int)lroundf(200.0f * log10f(lin)); }
+
+/* the UTILITY page's readings: DSP LOAD (this call's time against the length of the audio it made, smoothed), the SIGNAL peaks;
+ * the text moves at most twice a second */
+static void diagnostics(inst_t *s, double us, int frames)
+{
+    if (frames <= 0) return;
+    double block_us = frames * 1e6 / 44100.0;
+    s->load_us += 0.02 * (us / block_us * 2902.0 - s->load_us);
+    if (us > block_us) { s->overloads++; s->rev++; }
+    if ((s->diag_frames += frames) < 22050) return;
+    s->diag_frames = 0;
+    int shown = (int)lround(s->load_us / 2902.0 * 1000.0);
+    if (shown != s->load_shown) { s->load_shown = shown; s->rev++; }
+    if (shown > s->peak_shown) { s->peak_shown = shown; s->rev++; }
+    int in = tenths_db(s->in_peak), out = tenths_db(s->out_peak), gr = (int)lroundf(s->max_gr * 10.0f);
+    if (in != s->in_shown || out != s->out_shown || gr != s->gr_shown) { s->in_shown = in; s->out_shown = out; s->gr_shown = gr; s->rev++; }
+}
+
 static void process(void *inst, const int16_t *in_lr, int16_t *out_lr, int frames)
 {
     inst_t *s = inst;
+    const double t0 = now_us();
+    const int total = frames;
     float l[DJ_BLOCK], r[DJ_BLOCK];
     while (frames > 0) {
         int n = frames > DJ_BLOCK ? DJ_BLOCK : frames;
         for (int i = 0; i < n; i++) { l[i] = (float)in_lr[2 * i] * (1.0f / 32768.0f); r[i] = (float)in_lr[2 * i + 1] * (1.0f / 32768.0f); }
+        {   float pk = dj_block_peak(l, r, n); if (pk > s->in_peak) s->in_peak = pk; }   /* UTILITY: INPUT PEAK, before GAIN */
         for (int st = 0; st < S_MAX; st++) {
             run_stage(s, st, l, r, n);
             if (st == S_IN) {                              /* INPUT page: after the gain knob, before the phase invert */
@@ -493,8 +587,13 @@ static void process(void *inst, const int16_t *in_lr, int16_t *out_lr, int frame
             float drive = dj_readout_lin_db(pl > pr ? pl : pr);
             dj_grmeter_push(&s->gr, gr > 0.0f && gr > drive ? gr : drive, n);   /* no reduction = 0 dB, not a reading */
             dj_readout_push(&s->rd[RD_GR], gr, n);         /* holds the deepest reduction */
+            if (gr > s->max_gr) s->max_gr = gr;            /* UTILITY: MAX REDUCTION */
         }
-        for (int i = 0; i < n; i++) { out_lr[2 * i] = to_i16(l[i]); out_lr[2 * i + 1] = to_i16(r[i]); }
+        {   float pk = dj_block_peak(l, r, n); if (pk > s->out_peak) s->out_peak = pk; }   /* UTILITY: OUTPUT PEAK, CLIPS */
+        for (int i = 0; i < n; i++) {
+            if (fabsf(l[i]) > 1.0f || fabsf(r[i]) > 1.0f) s->clips++;
+            out_lr[2 * i] = to_i16(l[i]); out_lr[2 * i + 1] = to_i16(r[i]);
+        }
 
         /* tell the wrapper when a meter's filmstrip frame moved (it polls display_rev every ~100 ms) */
         const int top = DJ_METER_FRAMES - 1;
@@ -512,6 +611,7 @@ static void process(void *inst, const int16_t *in_lr, int16_t *out_lr, int frame
 
         in_lr += 2 * n; out_lr += 2 * n; frames -= n;
     }
+    diagnostics(s, now_us() - t0, total);
 }
 
 static const mpc_engine_t ENGINE = { create, destroy, midi, set_param, get_param, render, process, NULL /* song_pos: not a MIDI generator */ };

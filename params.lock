@@ -52,3 +52,13 @@ m_fin_l
 m_fin_r
 fin_db_i
 fin_db_t
+dsp_load
+dsp_peak
+overloads
+build
+diag_rst
+in_peak
+out_peak
+clips
+max_gr
+sig_rst

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Package the built plugin into install zips for Plugin Manager G2 / install.sh (run tools/build_device.sh first).
+# Package the built plugin into install zips for Plugin Manager G2 / install.sh, plus the folder-only zips for MPC OS 3.10.1's
+# VST2 Plugins folder (run tools/build_device.sh first).
 #   tools/make_release.sh            both zips: dist/CTRL-MixBus-<version>-mpc-aarch64.zip (Gen 2) and -mpc-armv7.zip (Gen 1)
 #   tools/make_release.sh aarch64    just the Gen 2 zip
 # The version comes from vst.json ("version": major*1000 + minor*100 + patch*10, e.g. 1030 = 1.0.3), so the zip, the
@@ -29,6 +30,12 @@ for t in $targets; do
   python3 "$SUB/tools/release.py" --so "$so" --skin "$SKIN" --entry build/pluginlist-entry.xml \
     --version "$VERSION" --about "$ABOUT" --repo tonyalonsotech/CTRL-MixBus --license AGPL-3.0-only --id ctrl-mixbus -o dist
 done
+
+# MPC OS 3.10.1 and later (Akai's plugin folder format): plugin.json gets "format": "vst2", each zip is checked against the
+# catalog spec, and a folder-only zip (<Name>-<ver>-Gen2.zip / -Gen1.zip) is written for copying into <drive>/VST2 Plugins/
+STEM="$(printf %s "${SKIN##* - VST - }" | sed -E 's/[^A-Za-z0-9]+/-/g; s/^-+|-+$//g')"   # release.py's zip name
+zips=(); for t in $targets; do zips+=("dist/$STEM-$VERSION-mpc-$t.zip"); done
+python3 tools/vst2_zips.py "$SUB" "${zips[@]}"
 
 # the catalog card's screenshot follows the release tag, never main (Open MPC maintainers' request, 2.0.0)
 sed -i -E "s#(raw\.githubusercontent\.com/tonyalonsotech/CTRL-MixBus/)[^/]+(/docs/preview\.png)#\1v$VERSION\2#" catalog/ctrl-mixbus.json

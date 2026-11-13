@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "engine.h"
+#include "../src/engine/version.h"
 #include "../src/dsp/dj_view.h"
 #include "../src/dsp/dj_meter.h"
 #include "../src/dsp/dj_taper.h"
@@ -33,7 +34,7 @@ static void setp(void *i, const char *k, const char *v) { E->set_param(i, k, v);
 static void setd(void *i, const char *k, double v) { char b[40]; snprintf(b, sizeof b, "%.6f", v); setp(i, k, b); }
 static void gets_(void *i, const char *k, char *b, int n) { b[0] = 0; E->get_param(i, k, b, n); }
 static double getd(void *i, const char *k) { char b[64]; gets_(i, k, b, sizeof b); return atof(b); }
-static int is_meter(const row_t *r) { return !strcmp(r->kind, "METER"); }
+static int is_meter(const row_t *r) { return !strcmp(r->kind, "METER") || !strcmp(r->kind, "READ") || !strcmp(r->kind, "TRIG"); }   /* (2.0.2: and the UTILITY readouts and buttons: never set or saved) */
 
 /* run n frames of a stereo tone (int16 peak `amp`, `hz`), return the peak out; `pos` carries the phase across calls */
 static int16_t run_tone(void *i, double amp, double hz, int frames, long *pos, int16_t *last_out)
@@ -473,6 +474,29 @@ int main(void)
     test_meters_and_views();
     test_meter_taps();
     test_blocks_and_determinism();
+    printf("UTILITY diagnostics (2.0.2)\n");
+    {
+        void *u = E->create(NULL);
+        int16_t in[256], out[256];
+        for (int k = 0; k < 128; k++) in[2 * k] = in[2 * k + 1] = (int16_t)(16384 * sin(2 * M_PI * 441.0 * k / 44100.0));   /* -6 dBFS */
+        for (int k = 0; k < 400; k++) E->process(u, in, out, 128);              /* over a second: the readings published */
+        char t[64], t2[64];
+        gets_(u, "dsp_load_display", t, sizeof t); CHECK(strchr(t, '%') != NULL, "DSP LOAD reads a percentage: %s", t);
+        gets_(u, "overloads_display", t, sizeof t); CHECK(t[0] >= '0' && t[0] <= '9', "OVERLOADS reads a count: %s", t);
+        gets_(u, "build_display", t, sizeof t); CHECK(strstr(t, PLUGIN_VERSION_TEXT) == t && strstr(t, "DESKTOP"), "BUILD reads %s", t);
+        gets_(u, "in_peak_display", t, sizeof t); CHECK(fabs(atof(t) + 6.0) < 0.2, "INPUT PEAK reads the -6 dB input: %s", t);
+        gets_(u, "out_peak_display", t, sizeof t); CHECK(strstr(t, "dB") != NULL, "OUTPUT PEAK reads %s", t);
+        gets_(u, "clips_display", t, sizeof t); CHECK(!strcmp(t, "0"), "CLIPS: none at -6 dB (%s)", t);
+        gets_(u, "max_gr_display", t, sizeof t); CHECK(!strcmp(t, "0.0 dB"), "MAX REDUCTION: none at -6 dB (%s)", t);
+        E->set_param(u, "sig_rst", "1"); for (int k = 0; k < 400; k++) { memset(in, 0, sizeof in); E->process(u, in, out, 128); }
+        gets_(u, "in_peak_display", t, sizeof t); CHECK(!strcmp(t, "-inf dB"), "RESET, then silence: INPUT PEAK reads %s", t);
+        E->set_param(u, "diag_rst", "1"); gets_(u, "dsp_peak_display", t, sizeof t); gets_(u, "dsp_load_display", t2, sizeof t2);
+        CHECK(!strcmp(t, t2), "RESET PEAK: DSP PEAK back to the load now (%s, %s)", t, t2);
+        CHECK(getd(u, "diag_rst") == 0.0 && getd(u, "sig_rst") == 0.0, "the RESET buttons read 0 after a tap");
+        static char st[8192]; gets_(u, "state", st, sizeof st);
+        CHECK(!strstr(st, "dsp_load") && !strstr(st, "diag_rst") && !strstr(st, "in_peak"), "readouts and RESET buttons are never saved");
+        E->destroy(u);
+    }
     printf("\n%d checks, %d failed\n", g_run, g_fail);
     puts(g_fail ? "FAILED" : "PASSED");
     return g_fail ? 1 : 0;

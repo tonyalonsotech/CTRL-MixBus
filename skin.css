@@ -5,3 +5,15 @@
 .slider-thumb { fill: #8a52e8; stroke: #ffffff; stroke-width: 1.5; }
 .knob-pointer, .knob-arc { stroke: #ffffff; }
 .text { fill: #feb9ff; }
+/* buttons and menus (the user's calls, 2026-11-12, from CTRL Giant): flat, no sheen or shadow; every button rounded; a button
+ * not selected (fill BTN_OFF) has slightly darker letters, a selected one and a trigger button white letters; a menu's
+ * options OPTION on the panel's BG, set apart by the gaps, the panel outlined; a closed menu (and a readout) a rounded
+ * dark box, no border */
+:root { --sheen: 0; --shadow: none; }
+.seg-sheen, .button-sheen { display: none; }
+.seg-bg { rx: 8px; ry: 8px; }
+.seg[style*="--fill:#58217e"] .seg-tx { fill: #c9b6d0; }
+.button-tx { fill: #ffffff; }
+.tile { fill: #370038; }
+.tile-border { stroke: #ffffff; }
+.box { stroke: none; rx: 8px; ry: 8px; }

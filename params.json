@@ -443,6 +443,94 @@
    "max": 1.0,
    "default": 0.0,
    "live": true
+  },
+  {
+   "key": "dsp_load",
+   "name": "DSP Load",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true,
+   "dynamic_display": true
+  },
+  {
+   "key": "dsp_peak",
+   "name": "DSP Peak",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true,
+   "dynamic_display": true
+  },
+  {
+   "key": "overloads",
+   "name": "Overloads",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true,
+   "dynamic_display": true
+  },
+  {
+   "key": "build",
+   "name": "Build",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true,
+   "dynamic_display": true
+  },
+  {
+   "key": "diag_rst",
+   "name": "Reset Peak",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "momentary": true
+  },
+  {
+   "key": "in_peak",
+   "name": "In Peak",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true,
+   "dynamic_display": true
+  },
+  {
+   "key": "out_peak",
+   "name": "Out Peak",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true,
+   "dynamic_display": true
+  },
+  {
+   "key": "clips",
+   "name": "Clips",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true,
+   "dynamic_display": true
+  },
+  {
+   "key": "max_gr",
+   "name": "Max Reduct",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true,
+   "dynamic_display": true
+  },
+  {
+   "key": "sig_rst",
+   "name": "Reset Sig",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "momentary": true
   }
  ]
 }
