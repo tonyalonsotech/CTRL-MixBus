@@ -9,6 +9,11 @@ building the skin; a non-zero exit fails the build). From CTRL Giant (2026-11-12
      page and just before its list, so the list stays on top and still takes its taps.
   4. (2026-11-13, house style from CTRL Giant) the Q-Link rings: each Q-Link column's ring takes in its knobs' names and value
      readouts, and stops short of other controls (tools/qlink_rings.py; settings QLINK_RING_FULL, RING_EXTRA in gen_layout.py).
+  5. (2.1.5, the user's call) a tap on a button selects its column's Q-Link bank, as a touch on a knob does. Every control's tap
+     runs MPC's "Q-Link" action (Akai's ui-reference 4.2: it banks the Q-Links to the bank holding the named parameter); a
+     button's names its own parameter, which no bank holds, so it did nothing. tools/qlink_follow.py gives each button, option
+     segment and menu field a copy of its definition whose "Q-Link" action names its column's first Q-Link control instead (the
+     column it stands in; or gen_layout.QLINK_BUTTONS, by hand).
 The result is checked: every component type a page uses still has a definition.
 
     tools/skin_post.py "<skin dir>"     (the folder that holds "Plugin Skins/TUI.json")
@@ -18,6 +23,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import qlink_follow  # noqa: E402
 import qlink_rings  # noqa: E402
 
 BACKDROP = "shBackdrop"
@@ -95,6 +101,9 @@ def main():
 
     import gen_layout as G   # its ring settings, if any (the default: every page's rings take in names and readouts)
     rings = qlink_rings.sized_rings(tui, kept, getattr(G, "QLINK_RING_FULL", None), getattr(G, "RING_EXTRA", None))
+    follow = qlink_follow.follow(tui, kept, os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                 getattr(G, "QLINK_BUTTONS", None), getattr(G, "QLINK_FOLLOW_OFF", ()))
+    follow = sum(len(v) for c in follow.values() for v in c.values())
     kept.append(backdrops(tui, kept))
     have = {d["key"] for d in kept}
     used = set()
@@ -117,8 +126,8 @@ def main():
 
     text = json.dumps(tui, separators=(",", ":"))
     open(path, "w", encoding="utf-8").write(text)
-    print("skin_post: %d definitions merged into %d; TUI.json %.1f MB -> %.1f MB; %d menu backdrops; %d Q-Link rings"
-          % (len(defs), len(kept), before / 1e6, len(text) / 1e6, backdrops.count, rings))
+    print("skin_post: %d definitions merged into %d; TUI.json %.1f MB -> %.1f MB; %d menu backdrops; %d Q-Link rings; "
+          "%d buttons select their Q-Link bank" % (len(defs), len(kept), before / 1e6, len(text) / 1e6, backdrops.count, rings, follow))
 
 
 if __name__ == "__main__":

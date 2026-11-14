@@ -8,6 +8,7 @@ void dj_gate_init(dj_gate_t *g, float fs)
     memset(g, 0, sizeof *g);
     g->fs = fs;
     g->det_rel = coef_ms(fs, 20.0f);
+    g->sm_a = coef_ms(fs, DJ_GATE_FLIP_SMOOTH_MS);
     dj_gate_set(g, -60.0f, 1.0f, 50.0f, 100.0f);
     g->gain = 1.0f;
     g->open = 1;
@@ -26,9 +27,12 @@ void dj_gate_reset(dj_gate_t *g)
 {
     g->env = 0.0f;
     g->gain = 1.0f;
-    g->open = 1;
+    g->open = !g->flip;              /* start passing either way: a normal gate as if just opened, a flipped one as if under */
     g->hold_left = 0;
+    for (int k = 0; k < DJ_GATE_FLIP_SMOOTH_STAGES; k++) g->sm[k] = 1.0f;
 }
+
+void dj_gate_set_flip(dj_gate_t *g, int flip) { g->flip = flip ? 1 : 0; }
 
 void dj_gate_process(dj_gate_t *g, float *l, float *r, int n)
 {
@@ -44,13 +48,21 @@ void dj_gate_process(dj_gate_t *g, float *l, float *r, int n)
             else g->open = 0;
         }
 
-        float target = g->open ? 1.0f : 0.0f;
-        float c = target > g->gain ? g->att_a : g->rel_a;
+        float target = (g->open != g->flip) ? 1.0f : 0.0f;
+        float c = g->open ? g->att_a : g->rel_a;     /* attack after the signal goes over, release after it falls under */
         g->gain += c * (target - g->gain);
         if (g->gain < 1e-5f && target == 0.0f) g->gain = 0.0f;
         if (g->gain > 0.99999f && target == 1.0f) g->gain = 1.0f;
 
-        l[i] *= g->gain;
-        r[i] *= g->gain;
+        float out = g->gain;
+        if (g->flip) {                                /* FLIP: the S-curve (each stage follows the one before) */
+            for (int k = 0; k < DJ_GATE_FLIP_SMOOTH_STAGES; k++) { g->sm[k] += g->sm_a * (out - g->sm[k]); out = g->sm[k]; }
+            if (out > 0.99999f && g->gain == 1.0f) out = 1.0f;
+            if (out < 1e-5f && g->gain == 0.0f) out = 0.0f;
+        } else {
+            for (int k = 0; k < DJ_GATE_FLIP_SMOOTH_STAGES; k++) g->sm[k] = g->gain;   /* ready, so switching FLIP on does not jump */
+        }
+        l[i] *= out;
+        r[i] *= out;
     }
 }

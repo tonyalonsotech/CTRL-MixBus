@@ -6,6 +6,10 @@ in one place.
     tools/gen_layout.py --check   exit 1 if either is out of date
 
 Four pages (INPUT, FILTER, OUTPUT, and UTILITY since 2.0.2). Rules the pages follow (see docs/DECISIONS.md):
+  * (2.1.1, the user's layout) INPUT is STEREO | TRANSIENT | GATE and OUTPUT is COMPRESSOR | meters | MAXIMIZER. In STEREO,
+    TRANSIENT and COMPRESSOR every row is a knob with its button to the RIGHT of it (pair(): the knob PAIR_DX left of the
+    column's centre, the button PAIR_DX right of it, level with the knob): the knobs make the column the Q-Links drive (their
+    ring encloses the knobs alone), the buttons are touchscreen only. The page pictures' titles: tools/gen_page_art.py;
   * every page is three columns of controls stacked VERTICALLY, because the Q-Links are a vertical column of four: one column
     on the screen = one Q-Link bank (A, B, C), top control = Q-Link 1 ... fourth = Q-Link 4. Switches (bypass, invert) are
     NOT on the Q-Links (2026-11-10): their place in a page's qlinks line is "-", they are touchscreen only; the picture/selector
@@ -65,12 +69,28 @@ EQ_MID_TOP = 144 + 52 + 128                                     # the EQ MID kno
 EQ_SW = (VIEW_W - 2) // 2                                       # 2 x 109 + 1 gap = 220
 # Q-Link rings (tools/qlink_rings.py): the FILTER page's columns also take in the grids above their knobs
 RING_EXTRA = {"FILTER": {0: ("lp_curve",), 1: ("hp_curve",), 2: ("eq_mode",)}}
+# (2.1.5, the user's call) a tap on a button selects its column's Q-Link bank, as a touch on a knob does: tools/qlink_follow.py,
+# by position (no QLINK_BUTTONS table needed: it gives every page's buttons the column they stand in)
+# (2.1.1) a knob and its button side by side: the knob this far left of the column's centre, the button this far right. The
+# knob's value text (130 px box) and the widest button name (BASS MONO ON/OFF, 136 px) then clear each other and the panel edges.
+PAIR_DX = 80
+# (2.1.1) the OUTPUT page's middle panel: four meter pairs, (x from the panel's centre, label, its two bars (key, art), dB number)
+# (2.1.2, the user's spacing) each pair is 76 px (two 36 px bars, 4 px apart), 18 px from the next pair and 18 px from the panel's
+# border on either side: 18 + 4 x 76 + 3 x 18 + 18 = 394 = the panel inside its two 1 px borders
+OUT_SET_W, OUT_SET_GAP = 76, 18
+OUT_METERS = tuple((int((i - 1.5) * (OUT_SET_W + OUT_SET_GAP)), lab, bars, rd) for i, (lab, bars, rd) in enumerate((
+    ("IN", (("mx_in_l", "meter_s"), ("mx_in_r", "meter_s")), "mxi"),
+    ("COMP", (("cp_gr", "meter_gr_s"), ("cp_gr", "meter_gr_s")), "cgr"),
+    ("MAX", (("mx_gr", "meter_gr_s"), ("mx_gr", "meter_gr_s")), "gr"),
+    ("OUT", (("m_out_l", "meter_s"), ("m_out_r", "meter_s")), "out"))))
 VIEW_FRAMES = int(re.search(r"#define\s+DJ_VIEW_STEPS\s+(\d+)", _VIEW).group(1)) * int(re.search(r"#define\s+DJ_VIEW_RES\s+(\d+)", _VIEW).group(1)) + 1
 SLOPES = ["12", "24", "36", "48", "96", "BRICK"]       # the lp_curve / hp_curve option labels
 
 COL_W, COL_Y, COL_H = 336, 96, 608
 COL_X_METERS = (200, 552, 904)                  # INPUT, FILTER: the meters take x 12..182 at the left
-COL_X_PLAIN = (120, 472, 824)                   # OUTPUT: no side meters, the three columns centred
+COL_X_PLAIN = (90, 442, 854)                    # OUTPUT: no side meters, the three columns centred; (2.1.2) the middle one is
+OUT_MID_W = 396                                 # 60 px wider than the others (30 px from each outer margin) for its four meters
+assert 2 * OUT_SET_GAP + 4 * OUT_SET_W + 3 * OUT_SET_GAP == OUT_MID_W - 2
 BODY_Y = 144                                    # below the frame title rule
 TITLE_CY = COL_Y + 20                           # a column title, centred on the column
 PAGE_ART = {"INPUT": "art/page_input.png", "FILTER": "art/page_filter.png", "OUTPUT": "art/page_output.png",
@@ -172,12 +192,17 @@ def knob(cx, cy, key, label, strip=KNOB_STRIP):
                                                                 KNOB_NAME_PX / 10)]
 
 
-def switch(cx, top, key, label):
-    """An ON/OFF switch: a tap toggle, touchscreen only (its place in the page's qlinks line is "-"). Its name is the page's own text, as knob()'s."""
+def switch(cx, top, key, label, word=None):
+    """An ON/OFF switch: a tap toggle, touchscreen only (its place in the page's qlinks line is "-"). Its name is the page's own text, as knob()'s.
+    word (2.1.2, the user's call): the button reads that word (-3DB, RMS ...) instead of ON, and has no name under it
+    (art/switch_<slug>_*.png, tools/gen_switch_art.py)."""
     cy = top + SW_H // 2
-    return ['toggle cx=%d cy=%d w=%d h=%d label="%s" key=%s img=art/switch_off.png img_on=art/switch_on.png ns=0' % (
-        cx, cy, SW_W, SW_H, label, key),
-            'text cx=%d cy=%d label="%s" size=%g weight=600' % (cx, cy + SW_NAME_DY, label, SW_NAME_PX / 10)]
+    art = "switch" if word is None else "switch_" + word.lower().replace("-", "m")
+    L = ['toggle cx=%d cy=%d w=%d h=%d label="%s" key=%s img=art/%s_off.png img_on=art/%s_on.png ns=0' % (
+        cx, cy, SW_W, SW_H, label, key, art, art)]
+    if word is None:
+        L.append('text cx=%d cy=%d label="%s" size=%g weight=600' % (cx, cy + SW_NAME_DY, label, SW_NAME_PX / 10))
+    return L
 
 
 def readout(cx, cy, key):
@@ -218,6 +243,21 @@ def stack(cx, placed):
     return L
 
 
+def pair(cx, top, kn, sw_key=None, sw_label=None, word=None):
+    """(2.1.1) A knob (kn: ('knob', key, label[, strip])) with its button to the right, level with the knob's ring (none: sw_key None)."""
+    cy = top + 39
+    L = knob(cx - PAIR_DX, cy, kn[1], kn[2], *kn[3:])
+    return L + (switch(cx + PAIR_DX, cy - SW_H // 2, sw_key, sw_label, word) if sw_key else [])
+
+
+def pairs(cx, rows):
+    """Four (knob, button key, button label[, word]) rows at the house pitch (138, from BODY_Y); (knob,) = a knob alone."""
+    L = []
+    for i, row in enumerate(rows):
+        L += pair(cx, BODY_Y + i * 138, *row)
+    return L
+
+
 def even(first_top, pitch, items):
     return list(zip([first_top + i * pitch for i in range(len(items))], items))
 
@@ -229,16 +269,20 @@ def build():
     cols = COL_X_METERS
     cxs = [x + COL_W // 2 for x in cols]
     L += tab("INPUT")
-    L += frame(cols[0], "GAIN + PHASE")
-    L += stack(cxs[0], even(BODY_Y, 138, [("knob", "in_gain", "GAIN"), ("sw", "in_on", "GAIN ON/OFF"), ("sw", "ph_inv", "PHASE INVERT")]) +
-               [(SW_BOTTOM_TOP, ("sw", "ph_on", "PHASE ON/OFF"))])
-    L += frame(cols[1], "WIDTH + BASS MONO")
-    L += stack(cxs[1], even(BODY_Y, 138, [("knob", "width", "WIDTH"), ("sw", "wd_on", "WIDTH ON/OFF"), ("knob", "bm_freq", "BASS FREQ")]) +
-               [(SW_BOTTOM_TOP, ("sw", "bm_on", "BASS MONO ON/OFF"))])
-    L += frame(cols[2], "BALANCE")
-    L += stack(cxs[2], even(BODY_Y, 138, [("knob", "balance", "BALANCE", BAL_STRIP), ("sw", "bal_on", "BALANCE ON/OFF")]))
+    # (2.1.1, the user's layout) STEREO | TRANSIENT | GATE. GAIN is always on and PHASE INVERT works alone (in_on, ph_on: not shown)
+    L += frame(cols[0], "STEREO")
+    L += pairs(cxs[0], [(("knob", "in_gain", "GAIN"), "ph_inv", "PHASE INVERT"), (("knob", "width", "WIDTH"), "wd_on", "WIDTH ON/OFF"),
+                        (("knob", "bm_freq", "BASS FREQ"), "bm_on", "BASS MONO ON/OFF"),
+                        (("knob", "balance", "BALANCE", BAL_STRIP), "bal_on", "BALANCE ON/OFF")])
+    L += frame(cols[1], "TRANSIENT")
+    L += pairs(cxs[1], [(("knob", "ts_att", "ATTACK", KNOB_CENTER), "ts_clip", "CLIP"), (("knob", "ts_pump", "PUMP"), "ts_m3", "-3 DB", "-3DB"),
+                        (("knob", "ts_sus", "SUSTAIN", KNOB_CENTER), "ts_m6", "-6 DB", "-6DB"), (("knob", "ts_speed", "SPEED"), "ts_on", "ON/OFF")])
+    L += frame(cols[2], "GATE")                     # (2.1.1: from the OUTPUT page; in the sound after the transient shaper)
+    # (2.1.2) its ON/OFF beside RELEASE; the knobs where the other columns' are
+    L += pairs(cxs[2], [(("knob", "gt_thr", "THRESHOLD"),), (("knob", "gt_att", "ATTACK"),), (("knob", "gt_hold", "HOLD"), "gt_flip", "FLIP", "FLIP"),
+                        (("knob", "gt_rel", "RELEASE"), "gt_on", "ON/OFF")])
     L += meters()
-    L.append('qlinks "INPUT" = in_gain,-,-,-,width,-,bm_freq,-,balance,-,-,-')
+    L.append('qlinks "INPUT" = in_gain,width,bm_freq,balance,ts_att,ts_pump,ts_sus,ts_speed,gt_thr,gt_att,gt_hold,gt_rel')
 
     # ---------------------------------------------------------------- FILTER (low-pass | high-pass | EQ: as CTRL Duck, the user's call 2.0.4)
     L += tab("FILTER")
@@ -261,25 +305,27 @@ def build():
     L += meters("fin")
     L.append('qlinks "FILTER" = lp_crv,lp_cut,lp_res,-,hp_crv,hp_cut,hp_res,-,eq_high,eq_mid,eq_low,-')
 
-    # ---------------------------------------------------------------- OUTPUT: GATE | maximizer meters | MAXIMIZER
+    # ---------------------------------------------------------------- OUTPUT: COMPRESSOR | meters | MAXIMIZER (2.1.1, the user's layout)
     cols = COL_X_PLAIN
-    cxs = [x + COL_W // 2 for x in cols]
+    cxs = [cols[0] + COL_W // 2, cols[1] + OUT_MID_W // 2, cols[2] + COL_W // 2]
     L += tab("OUTPUT")
-    L += frame(cols[0], "GATE")
-    L += stack(cxs[0], even(BODY_Y, 138, [("knob", "gt_thr", "THRESHOLD"), ("knob", "gt_att", "ATTACK"), ("knob", "gt_hold", "HOLD"), ("knob", "gt_rel", "RELEASE")]))
+    L += frame(cols[0], "COMPRESSOR")
+    L += pairs(cxs[0], [(("knob", "cp_thr", "THRESHOLD"), "cp_clip", "CLIP"), (("knob", "cp_att", "ATTACK"), "cp_rms", "RMS", "RMS"),
+                        (("knob", "cp_rel", "RELEASE"), "cp_peak", "PEAK", "PEAK"), (("knob", "cp_ratio", "RATIO"), "cp_on", "ON/OFF")])
     L += frame(cols[1], "")                         # the meters' box, no title: what they show is plain from their labels
+    # IN (after the filters, before the compressor), COMP and MAX (each from 2 dB before it acts, then its reduction), OUT
     mcy = 132 + METER_S_H // 2                      # 132..652, label above, dB number below
-    for dx, lab, bars, rd in ((-112, "IN", (("mx_in_l", "meter_s"), ("mx_in_r", "meter_s")), "mxi"),
-                              (0, "REDUCTION", (("mx_gr", "meter_gr_s"), ("mx_gr", "meter_gr_s")), "gr"),
-                              (112, "OUT", (("m_out_l", "meter_s"), ("m_out_r", "meter_s")), "out")):
+    for dx, lab, bars, rd in OUT_METERS:
         cx = cxs[1] + dx
         L += label(cx, 116, lab)
         for ddx, (key, art) in zip((-20, 20), bars):
             L.append("meter cx=%d cy=%d w=%d h=%d key=%s strip=art/%s.png frames=%d" % (cx + ddx, mcy, METER_W, METER_S_H, key, art, STRIP_FRAMES))
         L += readout(cx, mcy + METER_S_H // 2 + 22, rd)
     L += frame(cols[2], "MAXIMIZER")
-    L += stack(cxs[2], even(BODY_Y, 138, [("knob", "mx_thr", "THRESHOLD"), ("knob", "mx_att", "ATTACK"), ("knob", "mx_rel", "RELEASE"), ("knob", "mx_out", "OUTPUT")]))
-    L.append('qlinks "OUTPUT" = gt_thr,gt_att,gt_hold,gt_rel,mx_thr,mx_att,mx_rel,mx_out')
+    # (2.1.3) its ON/OFF beside OUTPUT (in the sound: after the maximizer, before OUTPUT); the knobs where the COMPRESSOR's are
+    L += pairs(cxs[2], [(("knob", "mx_thr", "THRESHOLD"),), (("knob", "mx_att", "ATTACK"),), (("knob", "mx_rel", "RELEASE"),),
+                        (("knob", "mx_out", "OUTPUT"), "mx_on", "ON/OFF")])
+    L.append('qlinks "OUTPUT" = cp_thr,cp_att,cp_rel,cp_ratio,mx_thr,mx_att,mx_rel,mx_out')
 
     # ---------------------------------------------------------------- UTILITY (2.0.2, the user's layout): the IN / OUT meters at the far
     # left (as INPUT's), DSP | SIGNAL | ABOUT; the ABOUT bank as CTRL Giant's (the logo, the name, CREATED BY over TonyAlonso.Tech,

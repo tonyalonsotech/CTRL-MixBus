@@ -24,7 +24,16 @@ TEXT_PX = 17
 SS = 4
 
 
-def button(on, fill=None, ink=None):
+# (2.1.2, the user's call) buttons that read their value instead of ON, with no name under them: art/switch_<slug>_on/off.png,
+# the same size and colours (tools/gen_layout.py switch(word=...))
+WORDS = ("-3DB", "-6DB", "RMS", "PEAK", "FLIP")
+
+
+def slug(word):
+    return word.lower().replace("-", "m")
+
+
+def button(on, fill=None, ink=None, word="ON"):
     w, h = W * SS, H * SS
     im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
@@ -32,13 +41,16 @@ def button(on, fill=None, ink=None):
     ink = ink or (P.BTN_ON_TEXT if on else P.BTN_OFF_TEXT)
     d.rounded_rectangle((0, 0, w - 1, h - 1), P.BTN_RADIUS * SS, fill=P.rgb(fill) + (255,))
     f = ImageFont.truetype(font(), TEXT_PX * SS)
-    tw = d.textlength("ON", font=f)
-    d.text((w / 2 - tw / 2, h / 2), "ON", font=f, fill=P.rgb(ink) + (255,), anchor="lm")
+    tw = d.textlength(word, font=f)
+    d.text((w / 2 - tw / 2, h / 2), word, font=f, fill=P.rgb(ink) + (255,), anchor="lm")
     return im.resize((W, H), Image.LANCZOS)
 
 
 def main():
     outs = {"switch_off.png": button(False), "switch_on.png": button(True)}
+    for wd in WORDS:
+        outs["switch_%s_off.png" % slug(wd)] = button(False, word=wd)
+        outs["switch_%s_on.png" % slug(wd)] = button(True, word=wd)
     bad = []
     for name, im in outs.items():
         path = os.path.join(ROOT, "art", name)

@@ -35,7 +35,26 @@
     "mx_rel": 0.5,
     "mx_out": 1.0,
     "lp_crv": 0.0,
-    "hp_crv": 0.0
+    "hp_crv": 0.0,
+    "ts_att": 0.5,
+    "ts_pump": 0.0,
+    "ts_sus": 0.5,
+    "ts_speed": 0.5,
+    "ts_clip": 0.0,
+    "ts_m3": 0.0,
+    "ts_m6": 0.0,
+    "ts_on": 0.0,
+    "cp_thr": 1.0,
+    "cp_att": 0.6,
+    "cp_rel": 0.5,
+    "cp_ratio": 0.0,
+    "cp_clip": 0.0,
+    "cp_rms": 0.0,
+    "cp_peak": 1.0,
+    "cp_on": 0.0,
+    "gt_on": 1.0,
+    "gt_flip": 0.0,
+    "mx_on": 1.0
    }
   }
  ]

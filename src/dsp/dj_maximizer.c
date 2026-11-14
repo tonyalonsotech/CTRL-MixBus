@@ -11,6 +11,8 @@ void dj_max_init(dj_maximizer_t *m, float fs)
     m->fs = fs;
     dj_smooth_init(&m->mk, fs, SMOOTH_MS, 1.0f);
     dj_smooth_init(&m->out, fs, SMOOTH_MS, 1.0f);
+    dj_smooth_init(&m->on_mix, fs, DJ_MAX_SWITCH_MS, 1.0f);
+    m->on = 1;
     dj_max_set(m, 0.0f, 0.05f, 100.0f, 0.0f);
     dj_max_reset(m);
 }
@@ -29,13 +31,21 @@ void dj_max_reset(dj_maximizer_t *m)
 {
     m->mk.v = m->mk.t;
     m->out.v = m->out.t;
+    m->on_mix.v = m->on_mix.t;
     m->g = 1.0f;
     m->in_pk[0] = m->in_pk[1] = 0.0f;
     m->g_min = 1.0f;
 }
 
+void dj_max_set_on(dj_maximizer_t *m, int on) { m->on = on ? 1 : 0; dj_smooth_set(&m->on_mix, (float)m->on); }
+
 void dj_max_process(dj_maximizer_t *m, float *l, float *r, int n)
 {
+    if (!m->on && dj_smooth_settled(&m->on_mix)) {    /* off: the output trim alone; the limiter at rest, nothing to meter */
+        for (int i = 0; i < n; i++) { float o = dj_smooth_next(&m->out); l[i] *= o; r[i] *= o; }
+        m->g = 1.0; m->g_min = 1.0; m->in_pk[0] = m->in_pk[1] = 0.0f;
+        return;
+    }
     for (int i = 0; i < n; i++) {
         float mk = dj_smooth_next(&m->mk);
         float a = l[i] * mk, b = r[i] * mk;
@@ -55,6 +65,8 @@ void dj_max_process(dj_maximizer_t *m, float *l, float *r, int n)
         float ya = a * g, yb = b * g;
         ya = ya > 1.0f ? 1.0f : ya < -1.0f ? -1.0f : ya;       /* the ceiling: 0 dBFS, always */
         yb = yb > 1.0f ? 1.0f : yb < -1.0f ? -1.0f : yb;
+        float e = dj_smooth_next(&m->on_mix);
+        if (e < 1.0f) { ya = l[i] + e * (ya - l[i]); yb = r[i] + e * (yb - r[i]); }   /* ON/OFF: toward the sound going in */
         float o = dj_smooth_next(&m->out);
         l[i] = ya * o;
         r[i] = yb * o;

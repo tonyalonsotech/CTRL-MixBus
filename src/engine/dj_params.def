@@ -118,3 +118,43 @@ DJP(OUT_PEAK, "out_peak",  "Out Peak",  READ,  0,    "")
 DJP(CLIPS,    "clips",     "Clips",     READ,  0,    "")
 DJP(MAX_GR,   "max_gr",    "Max Reduct", READ, 0,    "")
 DJP(SIG_RST,  "sig_rst",   "Reset Sig", TRIG,  0,    "")
+
+/* ---- 2.1.1 (the user's spec): the INPUT page's TRANSIENT shaper (bank B) and the OUTPUT page's COMPRESSOR (bank A), appended.
+ * GAIN is always on and PHASE INVERT works alone: in_on and ph_on (above) stay in the list for saved projects but do nothing.
+ * The gate moved to the INPUT page (bank C) and into the chain after the transient shaper, before the DJ EQ.
+ *   TRANSIENT: ATTACK and SUSTAIN -100..+100 % (0 % in the middle), PUMP 0..100 %, SPEED (0.5 = the base times); CLIP (the 0 dB soft
+ *   clip, then -3 dB; AUTO LEVEL works while it is off), -3 dB and -6 dB (after the clip), ON/OFF (off at Init, so Init is
+ *   untouched). src/dsp/dj_transient.h.
+ *   COMPRESSOR: CTRL Giant's model. THRESHOLD -60..0 dB (Init 0 dB), ATTACK 0.1..50 ms (0.6 = 4.2 ms), RELEASE 5 ms..2 s
+ *   (0.5 = 100 ms), RATIO 1:1..20:1 (log; Init 1:1, so the sound is untouched until it is set: the user's call); CLIP (0 dB soft clip after it); RMS / PEAK (the detector: exactly one is
+ *   on, a tap on one turns the other off, PEAK at Init); ON/OFF (off at Init). src/dsp/dj_comp.h.
+ * cp_gr and cgr_db_i/t: the OUTPUT page's COMP reduction meter and its dB number (as mx_gr and gr_db_i/t, which became MAX). */
+DJP(TS_ATT,   "ts_att",    "Trans Attack", KNOB, 0.5, "")
+DJP(TS_PUMP,  "ts_pump",   "Trans Pump",  KNOB,  0.0,  "")
+DJP(TS_SUS,   "ts_sus",    "Trans Sus",   KNOB,  0.5,  "")
+DJP(TS_SPEED, "ts_speed",  "Trans Speed", KNOB,  0.5,  "")
+DJP(TS_CLIP,  "ts_clip",   "Trans Clip",  SW,  0.0,    "")
+DJP(TS_M3,    "ts_m3",     "Trans -3 dB", SW,  0.0,    "")
+DJP(TS_M6,    "ts_m6",     "Trans -6 dB", SW,  0.0,    "")
+DJP(TS_ON,    "ts_on",     "Trans On",    SW,  0.0,    "")
+DJP(CP_THR,   "cp_thr",    "Comp Thresh", KNOB,  1.0,  "")
+DJP(CP_ATT,   "cp_att",    "Comp Attack", KNOB,  0.6,  "")
+DJP(CP_REL,   "cp_rel",    "Comp Rel",    KNOB,  0.5,  "")
+DJP(CP_RATIO, "cp_ratio",  "Comp Ratio",  KNOB,  0.0,  "")
+DJP(CP_CLIP,  "cp_clip",   "Comp Clip",   SW,  0.0,    "")
+DJP(CP_RMS,   "cp_rms",    "Comp RMS",    SW,  0.0,    "")
+DJP(CP_PEAK,  "cp_peak",   "Comp Peak",   SW,  1.0,    "")
+DJP(CP_ON,    "cp_on",     "Comp On",     SW,  0.0,    "")
+DJP(CP_GR,    "cp_gr",     "Comp GR",     METER, 0,    "")
+DJP(CGR_DB_I, "cgr_db_i",  "Comp GR dB",  METER, 0,    "")
+DJP(CGR_DB_T, "cgr_db_t",  "Comp GR .1",  METER, 0,    "")
+
+/* ---- 2.1.2 (the user's call): the gate's ON/OFF, beside RELEASE. On by default, so a project saved before it keeps its gate; at
+ * the -80 dB threshold (Init) the gate is off anyway, so Init stays untouched. */
+DJP(GT_ON,    "gt_on",     "Gate On",     SW,  1.0,    "")
+
+/* ---- 2.1.3 (the user's call): the gate's FLIP (beside HOLD: mutes above the threshold, passes below; off at Init) and the
+ * maximizer's ON/OFF (beside OUTPUT: after the maximizer, before its OUTPUT trim, which works either way; on by default, so a
+ * project saved before it keeps its maximizer). src/dsp/dj_gate.h, dj_maximizer.h. */
+DJP(GT_FLIP,  "gt_flip",   "Gate Flip",   SW,  0.0,    "")
+DJP(MX_ON,    "mx_on",     "Max On",      SW,  1.0,    "")

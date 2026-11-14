@@ -7,4 +7,7 @@
   {"version": "2.0.2", "device": "Force (Gen1)", "firmware": "3.10.1", "date": "2026-11-12"},
   {"version": "2.1.0", "device": "MPC One (Gen2)", "firmware": "3.10.1", "date": "2026-11-13"},
   {"version": "2.1.0", "device": "MPC Live III (Gen2)", "firmware": "3.10.1", "date": "2026-11-13"},
-  {"version": "2.1.0", "device": "Force (Gen1)", "firmware": "3.10.1", "date": "2026-11-13"} ]
+  {"version": "2.1.0", "device": "Force (Gen1)", "firmware": "3.10.1", "date": "2026-11-13"},
+  {"version": "2.2.0", "device": "MPC One (Gen2)", "firmware": "3.10.1", "date": "2026-11-13"},
+  {"version": "2.2.0", "device": "MPC Live III (Gen2)", "firmware": "3.10.1", "date": "2026-11-13"},
+  {"version": "2.2.0", "device": "Force (Gen1)", "firmware": "3.10.1", "date": "2026-11-13"} ]

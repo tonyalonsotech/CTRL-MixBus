@@ -16,11 +16,11 @@
 
 ## Description
 
-CTRL Mixbus is a professional stereo mixing and processing effect designed to streamline your workflow across three focused pages. Take control of input gain, stereo width, equalization, precision filtering, dynamic gating, and loudness maximization.
+CTRL Mixbus is a professional stereo mixing and processing effect designed to streamline your workflow across three focused pages. Take control of input gain, stereo width, transient shaping, equalization, precision filtering, dynamic gating, compression, and loudness maximization.
 
-Featuring a versatile three-band DJ EQ with selectable EQ and Isolator modes, adjustable low-pass and high-pass filters with resonance and curve shaping, bass width control, stereo manipulation, phase inversion, and independent processing stages, CTRL Mixbus provides the tools needed for detailed mix shaping and signal control. Fine-tune your stereo image with width, bass width, and balance adjustments, then refine your output with configurable gating and maximization for precise dynamic control and enhanced loudness.
+Featuring a versatile three-band DJ EQ with selectable EQ and Isolator modes, adjustable low-pass and high-pass filters with resonance and curve shaping, bass width control, stereo manipulation, phase inversion, and independent processing stages, CTRL Mixbus provides the tools needed for detailed mix shaping and signal control. Fine-tune your stereo image with width, bass width, and balance adjustments, shape the attack and sustain of every hit with the transient shaper, then refine your output with configurable gating, compression, and maximization for precise dynamic control and enhanced loudness.
 
-Dedicated input and output level meters, maximizer gain reduction monitoring, and visual filter displays provide real-time feedback throughout your signal chain. Integrated clipping indicators flash red to warn of excessive signal levels, helping you maintain control over your mix.
+Dedicated input and output level meters, compressor and maximizer gain reduction monitoring, and visual filter displays provide real-time feedback throughout your signal chain. Integrated clipping indicators flash red to warn of excessive signal levels, helping you maintain control over your mix.
 
 Built natively for MPC, CTRL Mixbus brings essential mixing, stereo processing, tonal shaping, and dynamic control together in a streamlined interface designed for efficient workflow and hands-on operation, without relying on external hardware or software.
 
@@ -55,6 +55,18 @@ V2.0.3 (beta) - Q-Link rings show which controls the Q-Links are driving. On the
 V2.0.4 (beta) - FILTER page has been re-arranged to follow the same flow as CTRL Duck. This allows the Q-Link overlay to populate on screen without covering the Filter Curve Displays. Q-Link mappings have been adjusted to match the new layout.
 
 V2.1.0 - This is the release version including all changes made in beta versions 2.0.2, 2.0.3, and 2.0.4.
+
+V2.1.1 (beta) - The INPUT page is now STEREO, TRANSIENT and GATE: a new transient shaper (ATTACK, PUMP, SUSTAIN, SPEED, with CLIP, -3 DB and -6 DB) and the gate moved from the OUTPUT page, now before the filters. GAIN is always on; PHASE ON/OFF removed. The OUTPUT page now has a compressor (THRESHOLD, ATTACK, RELEASE, RATIO, with CLIP, RMS and PEAK) and COMP and MAX reduction meters.
+
+V2.1.2 (beta) - GATE now has an ON/OFF button. The -3DB, -6DB, RMS and PEAK buttons show their value inside the button. The OUTPUT page meters are evenly spaced (18 pixels apart). The compressor's CLIP now comes before the compressor.
+
+V2.1.3 (beta) - GATE has a FLIP button that inverts the gate (mutes above the threshold, passes below). The MAXIMIZER has an ON/OFF button; its OUTPUT knob works either way.
+
+V2.1.4 (beta) - Fixed the clicking on GATE in FLIP mode. The compressor's CLIP now clips at -0.1 dB, then lowers the level into the compressor by 1 dB.
+
+V2.1.5 (beta) - Tapping a button now switches the Q-Links to that button's column, as touching a knob does.
+
+V2.2.0 - This is the release version including all changes made in beta versions 2.1.1, 2.1.2, 2.1.3, 2.1.4, and 2.1.5.
 
 ------------------------------------------------------------------------
 

@@ -531,6 +531,182 @@
    "max": 1.0,
    "default": 0.0,
    "momentary": true
+  },
+  {
+   "key": "ts_att",
+   "name": "Trans Attack",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.5,
+   "dynamic_display": true
+  },
+  {
+   "key": "ts_pump",
+   "name": "Trans Pump",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "ts_sus",
+   "name": "Trans Sus",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.5,
+   "dynamic_display": true
+  },
+  {
+   "key": "ts_speed",
+   "name": "Trans Speed",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.5,
+   "dynamic_display": true
+  },
+  {
+   "key": "ts_clip",
+   "name": "Trans Clip",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "ts_m3",
+   "name": "Trans -3 dB",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "ts_m6",
+   "name": "Trans -6 dB",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "ts_on",
+   "name": "Trans On",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "cp_thr",
+   "name": "Comp Thresh",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "cp_att",
+   "name": "Comp Attack",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.6,
+   "dynamic_display": true
+  },
+  {
+   "key": "cp_rel",
+   "name": "Comp Rel",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.5,
+   "dynamic_display": true
+  },
+  {
+   "key": "cp_ratio",
+   "name": "Comp Ratio",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "cp_clip",
+   "name": "Comp Clip",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "cp_rms",
+   "name": "Comp RMS",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "cp_peak",
+   "name": "Comp Peak",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "cp_on",
+   "name": "Comp On",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "cp_gr",
+   "name": "Comp GR",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "cgr_db_i",
+   "name": "Comp GR dB",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "cgr_db_t",
+   "name": "Comp GR .1",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "live": true
+  },
+  {
+   "key": "gt_on",
+   "name": "Gate On",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "gt_flip",
+   "name": "Gate Flip",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "mx_on",
+   "name": "Max On",
+   "min": 0.0,
+   "max": 1.0,
+   "default": 1.0,
+   "dynamic_display": true
   }
  ]
 }

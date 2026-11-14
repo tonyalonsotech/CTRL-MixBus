@@ -150,7 +150,7 @@ static void test_state(void)
     CHECK(strstr(st, "m_in_l") == NULL && strstr(st, "lp_view") == NULL && strstr(st, "mx_gr") == NULL, "meters and display codes are not part of a preset");
 
     setp(b, "state", st);
-    double va[64], vb[64]; snapshot(a, va); snapshot(b, vb);
+    double va[128], vb[128]; snapshot(a, va); snapshot(b, vb);
     int same = 1; for (int k = 0; k < NROWS; k++) if (fabs(va[k] - vb[k]) > 1.5e-6) { same = 0; printf("  differs: %s %g vs %g\n", ROWS[k].key, va[k], vb[k]); }
     CHECK(same, "restoring the state on another instance reproduces every parameter");
     char st2[8192]; gets_(b, "state", st2, sizeof st2);
@@ -165,9 +165,9 @@ static void test_state(void)
     setp(b, "state", "mpcdj:1;in_gain=900000;future_param=5;lp_curve=3;");
     CHECK(fabs(getd(b, "in_gain") - 0.9) < 1e-6 && getd(b, "lp_curve") == 3, "listed keys applied");
     CHECK(getd(b, "width") == 1.0 && getd(b, "mx_thr") == 1.0 && getd(b, "gt_thr") == 0.0, "keys missing from an old state take their defaults");
-    double before[64]; snapshot(b, before);
+    double before[128]; snapshot(b, before);
     setp(b, "state", "mpcdj:3;in_gain=0;"); setp(b, "state", ""); setp(b, "state", "garbage"); setp(b, "state", "mpcdj");
-    double after[64]; snapshot(b, after);
+    double after[128]; snapshot(b, after);
     CHECK(memcmp(before, after, sizeof before) == 0, "a state with another tag, or none, changes nothing");
     setp(b, "state", "mpcdj:1;in_gain=99999999999999999999;width=-5;eq_mode=7;in_on=abc;;==;=3;noequals;lp_cut=");
     CHECK(getd(b, "in_gain") == 1.0 && getd(b, "width") == 0.0 && getd(b, "eq_mode") == 1.0 && getd(b, "in_on") == 0.0, "hostile values are clamped, never crash");
@@ -178,14 +178,14 @@ static void test_state(void)
         else { memcpy(f, "mpcdj:1;", 8); for (int k = 8; k < n + 8 && k < 399; k++) f[k] = "abc=;0123456789_-. xyz"[rand() % 22]; f[n + 8 < 399 ? n + 8 : 399] = 0; }
         setp(b, "state", f);
     }
-    double fz[64]; snapshot(b, fz);
+    double fz[128]; snapshot(b, fz);
     int ok = 1; for (int k = 0; k < NROWS; k++) if (!is_meter(&ROWS[k]) && !(fz[k] >= 0.0 && fz[k] <= (strcmp(ROWS[k].kind, "KNOB") ? 5.0 : 1.0))) ok = 0;
     CHECK(ok, "after fuzzing every value is still in range");
     /* a buffer too small for the state is reported as failure (0), never as a cut-off state */
     char tiny[40]; CHECK(E->get_param(a, "state", tiny, sizeof tiny) == 0, "state that does not fit reports 0");
     /* Init state == defaults */
     char dst[8192]; void *d = E->create(NULL); gets_(d, "state", dst, sizeof dst);
-    setp(b, "state", dst); double vd[64], vb2[64]; snapshot(d, vd); snapshot(b, vb2);
+    setp(b, "state", dst); double vd[128], vb2[128]; snapshot(d, vd); snapshot(b, vb2);
     CHECK(memcmp(vd, vb2, sizeof vd) == 0, "the default state restores the defaults (Init)");
     E->destroy(a); E->destroy(b); E->destroy(d);
 }
@@ -204,6 +204,16 @@ static void test_gate_and_maximizer(void)
     nz = 0; for (int k = 0; k < 256; k++) if (last[k]) nz = 1;
     CHECK(!nz, "gate threshold -40 dB closes on a -84 dBFS tone");
     char b[40]; gets_(a, "gt_thr_display", b, sizeof b); CHECK(!strcmp(b, "-40.0 dB"), "gate threshold text '%s'", b);
+    /* 2.1.2: the gate's ON/OFF: off, the raised threshold no longer gates; on again, it does */
+    CHECK(getd(a, "gt_on") == 1.0, "the gate's ON/OFF is on by default");
+    setp(a, "gt_on", "Off"); run_tone(a, 2.0, 100, 128 * 100, &pos, last);
+    nz = 0; for (int k = 0; k < 256; k++) if (last[k]) nz = 1;
+    CHECK(nz, "gate ON/OFF off: the tone passes at -40 dB threshold");
+    setp(a, "gt_on", "On"); run_tone(a, 2.0, 100, 128 * 400, &pos, last);
+    nz = 0; for (int k = 0; k < 256; k++) if (last[k]) nz = 1;
+    CHECK(!nz, "on again: gated");
+    { void *o = E->create(NULL); setp(o, "state", "mpcdj:2;gt_thr=500000;");
+      CHECK(getd(o, "gt_on") == 1.0, "a project saved before gt_on keeps its gate on"); E->destroy(o); }
     setd(a, "gt_thr", 0.0); run_tone(a, 2.0, 100, 128 * 100, &pos, last);
     nz = 0; for (int k = 0; k < 256; k++) if (last[k]) nz = 1;
     CHECK(nz, "back at the minimum the gate is off again (click-free fade, then it passes)");
@@ -270,7 +280,8 @@ static void test_meters_and_views(void)
     /* 1.0.5: the on/off switches turn like knobs. The value is kept exactly as sent (no snapping, so the Q-Link, the slider and
      * the sound agree); a Q-Link's 0-63 is off and 64-127 on. Nothing is reported back: nothing differs from what the host sent. */
     {
-        const char *sws[] = { "in_on", "ph_inv", "ph_on", "wd_on", "bm_on", "bal_on", "eq_on", "lp_on", "hp_on" };
+        const char *sws[] = { "in_on", "ph_inv", "ph_on", "wd_on", "bm_on", "bal_on", "eq_on", "lp_on", "hp_on",
+                              "ts_clip", "ts_m3", "ts_m6", "ts_on", "cp_clip", "cp_rms", "cp_peak", "cp_on", "gt_on", "gt_flip", "mx_on" };
         for (unsigned k = 0; k < sizeof sws / sizeof sws[0]; k++) {
             char dk[40]; snprintf(dk, sizeof dk, "%s_display", sws[k]);
             int ok = 1;
@@ -391,7 +402,7 @@ static void test_meters_and_views(void)
 
 static void test_meter_taps(void)
 {
-    puts("meter tap points: INPUT after gain / before phase; FILTER after balance / before EQ");
+    puts("meter tap points: INPUT after gain / before phase; FILTER after the gate / before EQ; OUTPUT IN after the filters");
     long pos = 0;
     void *a = E->create(NULL);
     run_tone(a, 3277, 300, 128 * 40, &pos, NULL);          /* about -20 dBFS, Init */
@@ -423,10 +434,296 @@ static void test_meter_taps(void)
           "FILTER input meter is after balance, INPUT's is not (fin L %g R %g, in R %g)", getd(a, "m_fin_l"), getd(a, "m_fin_r"), getd(a, "m_in_r"));
     E->destroy(a);
 
+    a = E->create(NULL); setd(a, "gt_thr", 0.9);           /* 2.1.1: the gate is before the FILTER tap: closed, it reads nothing */
+    run_tone(a, 30, 300, 128 * 400, &pos, NULL);           /* -61 dBFS, under the -8 dB threshold */
+    CHECK(getd(a, "m_fin_l") == 0.0 && getd(a, "m_in_l") == 0.0, "a closed gate empties the FILTER input meter (%g)", getd(a, "m_fin_l"));
+    E->destroy(a);
+    a = E->create(NULL); setd(a, "gt_thr", 0.5);           /* -40 dB: a -20 dB tone opens it and reads on the FILTER meter */
+    run_tone(a, 3277, 300, 128 * 200, &pos, NULL);
+    CHECK(fabs(getd(a, "m_fin_l") - fin0) < 0.02, "an open gate passes to the FILTER meter (%g)", getd(a, "m_fin_l"));
+    E->destroy(a);
+    a = E->create(NULL); setd(a, "lp_cut", 0.0);           /* the OUTPUT page's IN meter is after the filters (before the compressor) */
+    run_tone(a, 3277, 3000, 128 * 400, &pos, NULL);
+    CHECK(getd(a, "mx_in_l") < fin0 - 0.1 && fabs(getd(a, "m_fin_l") - fin0) < 0.02, "a closed low-pass shows on the OUTPUT page's IN (%g), not on FILTER's",
+          getd(a, "mx_in_l"));
+    E->destroy(a);
+
     a = E->create(NULL); setd(a, "balance", 0.0); setd(a, "bal_on", 0.0);   /* balance switched off: both sides again */
     run_tone(a, 3277, 300, 128 * 40, &pos, NULL);
     CHECK(fabs(getd(a, "m_fin_r") - fin0) < 0.02, "and after its on/off switch (R %g)", getd(a, "m_fin_r"));
     E->destroy(a);
+}
+
+
+/* peak of one channel of the output over `frames` of a tone burst that starts at `start` (silence before it) */
+static void run_burst(void *i, double amp, double hz, int frames, int start, int16_t *out_l)
+{
+    int16_t in[256], out[256];
+    for (int f = 0; f < frames; f += 128) {
+        for (int k = 0; k < 128; k++) {
+            long t = f + k;
+            int16_t v = t < start ? 0 : (int16_t)lrint(amp * sin(2.0 * M_PI * hz * (double)(t - start) / 44100.0));
+            in[2 * k] = v; in[2 * k + 1] = v;
+        }
+        E->process(i, in, out, 128);
+        for (int k = 0; k < 128 && f + k < frames; k++) out_l[f + k] = out[2 * k];
+    }
+}
+static int peak16(const int16_t *a, int from, int to) { int p = 0; for (int i = from; i < to; i++) { int v = abs(a[i]); if (v > p) p = v; } return p; }
+
+static void test_transient(void)
+{
+    puts("transient shaper (2.1.1)");
+    enum { N = 44100 };
+    static int16_t o0[N], o1[N];
+    long pos = 0;
+    /* Init: off. On with every knob at its default: exactly transparent for a signal under full scale */
+    void *a = E->create(NULL);
+    CHECK(getd(a, "ts_on") == 0.0, "the transient shaper is off at Init");
+    char b[40];
+    gets_(a, "ts_att_display", b, sizeof b); CHECK(!strcmp(b, "0 %"), "ATTACK reads '%s' at Init", b);
+    setd(a, "ts_att", 64 / 127.0); gets_(a, "ts_att_display", b, sizeof b); CHECK(!strcmp(b, "0 %"), "a Q-Link's middle (64) reads '%s'", b);
+    setd(a, "ts_att", 1.0); gets_(a, "ts_att_display", b, sizeof b); CHECK(!strcmp(b, "+100 %"), "ATTACK top '%s'", b);
+    setd(a, "ts_sus", 0.0); gets_(a, "ts_sus_display", b, sizeof b); CHECK(!strcmp(b, "-100 %"), "SUSTAIN bottom '%s'", b);
+    E->destroy(a);
+    void *c = E->create(NULL); setp(c, "ts_on", "On"); setp(c, "eq_on", "Off");
+    void *d = E->create(NULL); setp(d, "eq_on", "Off");
+    int same = 1; int16_t io[256], oc[256], od[256];
+    srand(7);
+    for (int it = 0; it < 60; it++) {
+        for (int k = 0; k < 256; k++) io[k] = (int16_t)(rand() % 40001 - 20000);
+        E->process(c, io, oc, 128); E->process(d, io, od, 128);
+        if (it > 5 && memcmp(oc, od, sizeof oc)) same = 0;
+    }
+    CHECK(same, "ON with ATTACK, SUSTAIN and PUMP at 0 %%: bit-transparent under full scale");
+    E->destroy(c); E->destroy(d);
+
+    /* ATTACK +100 %: the first milliseconds of a hit are louder; -100 %: softer. The body (200 ms on) is about the same. */
+    const int st = 4410, hit = st + 220;                 /* the burst starts at 100 ms; the first 5 ms of it */
+    a = E->create(NULL); setp(a, "ts_on", "On"); run_burst(a, 6000, 200, N, st, o0); E->destroy(a);
+    a = E->create(NULL); setp(a, "ts_on", "On"); setd(a, "ts_att", 1.0); run_burst(a, 6000, 200, N, st, o1); E->destroy(a);
+    int p0 = peak16(o0, st, hit), p1 = peak16(o1, st, hit);
+    CHECK(p1 > p0 * 1.6, "ATTACK +100 %%: the hit is louder (%d vs %d)", p1, p0);
+    CHECK(abs(peak16(o1, st + 13230, st + 17640) - peak16(o0, st + 13230, st + 17640)) < 600, "and the body is not (%d vs %d)",
+          peak16(o1, st + 13230, st + 17640), peak16(o0, st + 13230, st + 17640));
+    a = E->create(NULL); setp(a, "ts_on", "On"); setd(a, "ts_att", 0.0); run_burst(a, 6000, 200, N, st, o1); E->destroy(a);
+    CHECK(peak16(o1, st, hit) < p0 * 0.7, "ATTACK -100 %%: the hit is softer (%d vs %d)", peak16(o1, st, hit), p0);
+
+    /* SUSTAIN: a hit that decays (a 200 Hz tone with a 60 ms decay): +100 % brings the tail up, -100 % takes it down */
+    {
+        static int16_t t0[N], t1[N], t2[N];
+        void *x[3]; double sus[3] = { 0.5, 1.0, 0.0 }; int16_t *o[3] = { t0, t1, t2 };
+        for (int k = 0; k < 3; k++) {
+            x[k] = E->create(NULL); setp(x[k], "ts_on", "On"); setd(x[k], "ts_sus", sus[k]);
+            int16_t in[256], out[256];
+            for (int f = 0; f < N; f += 128) {
+                for (int j = 0; j < 128; j++) { double t = (f + j) / 44100.0; int16_t v = (int16_t)lrint(20000.0 * exp(-t / 0.06) * sin(2 * M_PI * 200 * t)); in[2 * j] = in[2 * j + 1] = v; }
+                E->process(x[k], in, out, 128);
+                for (int j = 0; j < 128 && f + j < N; j++) o[k][f + j] = out[2 * j];
+            }
+            E->destroy(x[k]);
+        }
+        int tail0 = peak16(t0, 8820, 13230), tail1 = peak16(t1, 8820, 13230), tail2 = peak16(t2, 8820, 13230);   /* 200..300 ms */
+        CHECK(tail1 > tail0 * 2 && tail2 < tail0 / 2, "SUSTAIN +100 %% raises the tail (%d), -100 %% cuts it (%d), from %d", tail1, tail2, tail0);
+        CHECK(abs(peak16(t1, 0, 220) - peak16(t0, 0, 220)) < 2000, "the hit itself is about the same (%d vs %d)", peak16(t1, 0, 220), peak16(t0, 0, 220));
+    }
+
+    /* PUMP 100 %: a dip right behind the hit (5..40 ms in), the hit itself not raised */
+    a = E->create(NULL); setp(a, "ts_on", "On"); setd(a, "ts_pump", 1.0); run_burst(a, 6000, 200, N, st, o1); E->destroy(a);
+    CHECK(peak16(o1, st + 441, st + 1764) < peak16(o0, st + 441, st + 1764) * 0.7, "PUMP: the 10..40 ms after the hit dip (%d vs %d)",
+          peak16(o1, st + 441, st + 1764), peak16(o0, st + 441, st + 1764));
+    CHECK(peak16(o1, st, hit) <= p0 + 50, "and the hit is not raised (%d vs %d)", peak16(o1, st, hit), p0);
+
+    /* SPEED: slower = a longer transient window: ATTACK +100 % still boosts 15 ms in at SPEED 0, hardly at SPEED 1 */
+    {
+        a = E->create(NULL); setp(a, "ts_on", "On"); setd(a, "ts_att", 1.0); setd(a, "ts_speed", 0.0); run_burst(a, 6000, 200, N, st, o1); E->destroy(a);
+        int slow = peak16(o1, st + 661, st + 882);
+        a = E->create(NULL); setp(a, "ts_on", "On"); setd(a, "ts_att", 1.0); setd(a, "ts_speed", 1.0); run_burst(a, 6000, 200, N, st, o1); E->destroy(a);
+        int fast = peak16(o1, st + 661, st + 882);
+        CHECK(slow > fast * 1.3, "SPEED: 15..20 ms after the hit the slow setting still boosts (%d), the fast one hardly (%d)", slow, fast);
+    }
+
+    /* -3 dB, -6 dB, both -9 dB, after everything; only while the shaper is on */
+    {
+        double want[4] = { 0, -3, -6, -9 };
+        for (int m = 0; m < 4; m++) {
+            a = E->create(NULL); pos = 0; setp(a, "ts_on", "On"); setp(a, "ts_m3", (m & 1) ? "On" : "Off"); setp(a, "ts_m6", (m & 2) ? "On" : "Off");
+            int16_t last[256]; run_tone(a, 16384, 441, 128 * 100, &pos, last);
+            int pk = 0; for (int k = 0; k < 256; k++) if (abs(last[k]) > pk) pk = abs(last[k]);
+            CHECK(fabs(20 * log10(pk / 16384.0) - want[m]) < 0.15, "trim %g dB: %.2f dB", want[m], 20 * log10(pk / 16384.0));
+            E->destroy(a);
+        }
+        a = E->create(NULL); pos = 0; setp(a, "ts_m6", "On");
+        int16_t last[256]; run_tone(a, 16384, 441, 128 * 100, &pos, last);
+        CHECK(peak16(last, 0, 256) > 16300, "the trim does nothing while the shaper is off (%d)", peak16(last, 0, 256));
+        E->destroy(a);
+    }
+
+    /* AUTO LEVEL (CLIP off): +12 dB over full scale into the shaper is brought back to 0 dBFS, so the maximizer has nothing to do */
+    {
+        /* (the DJ EQ off in these: its crossovers turn the phase, which raises a flattened wave's peaks again) */
+        a = E->create(NULL); pos = 0; setp(a, "ts_on", "On"); setp(a, "eq_on", "Off"); setd(a, "in_gain", dj_taper_gain_n_from_db(12.0f, DJ_IN_N0, DJ_IN_MAX_DB));
+        int16_t last[256]; run_tone(a, 16384, 441, 128 * 1000, &pos, last);   /* -6 dBFS in, +6 dBFS after the gain; 2.9 s: the onset's hold gone */
+        int pk = peak16(last, 0, 256);
+        CHECK(pk > 31500 && pk <= 32768, "AUTO LEVEL: the output sits at 0 dBFS (%d)", pk);
+        int fi = (int)lround(getd(a, "gr_db_i") * (DJ_READOUT_INT_FRAMES - 1));
+        CHECK(fi >= 61, "and the maximizer reduces (almost) nothing (frame %d)", fi);
+        E->destroy(a);
+        /* off: the maximizer has to take the 6 dB */
+        a = E->create(NULL); pos = 0; setp(a, "eq_on", "Off"); setd(a, "in_gain", dj_taper_gain_n_from_db(12.0f, DJ_IN_N0, DJ_IN_MAX_DB));
+        run_tone(a, 16384, 441, 128 * 1000, &pos, last);
+        fi = (int)lround(getd(a, "gr_db_i") * (DJ_READOUT_INT_FRAMES - 1));
+        CHECK(fi <= 56, "(with the shaper off the maximizer takes it: frame %d)", fi);
+        E->destroy(a);
+    }
+
+    /* CLIP: the peaks rounded to 0 dBFS, then -3 dB: an output at about -3 dBFS however hard it is driven; AUTO LEVEL lets go */
+    {
+        a = E->create(NULL); pos = 0; setp(a, "ts_on", "On"); setp(a, "ts_clip", "On"); setp(a, "eq_on", "Off"); setd(a, "in_gain", 1.0);   /* +24 dB */
+        int16_t last[256]; run_tone(a, 16384, 441, 128 * 400, &pos, last);
+        int pk = peak16(last, 0, 256);
+        CHECK(fabs(20 * log10(pk / 32768.0) + 3.0) < 0.3, "CLIP: the output peaks at -3 dBFS (%.2f dB)", 20 * log10(pk / 32768.0));
+        setp(a, "ts_m6", "On"); run_tone(a, 16384, 441, 128 * 100, &pos, last); pk = peak16(last, 0, 256);
+        CHECK(fabs(20 * log10(pk / 32768.0) + 9.0) < 0.3, "CLIP and -6 dB: -9 dBFS (%.2f dB)", 20 * log10(pk / 32768.0));
+        E->destroy(a);
+        /* a quiet signal (under the clip's knee) only gets the -3 dB */
+        a = E->create(NULL); pos = 0; setp(a, "ts_on", "On"); setp(a, "ts_clip", "On");
+        run_tone(a, 8192, 441, 128 * 100, &pos, last); pk = peak16(last, 0, 256);
+        CHECK(fabs(20 * log10(pk / 8192.0) + 3.0) < 0.1, "CLIP under its knee: just -3 dB (%.2f dB)", 20 * log10(pk / 8192.0));
+        E->destroy(a);
+    }
+}
+
+static void test_compressor(void)
+{
+    puts("compressor (2.1.1)");
+    char b[40];
+    {   /* Init: switching it on changes nothing (0 dB, 1:1) */
+        void *x = E->create(NULL), *y = E->create(NULL); long px = 0, py = 0; int16_t ox[256], oy[256];
+        setp(x, "cp_on", "On"); setp(x, "eq_on", "Off"); setp(y, "eq_on", "Off");
+        for (int k = 0; k < 50; k++) { run_tone(x, 30000, 441, 128, &px, ox); run_tone(y, 30000, 441, 128, &py, oy); }
+        CHECK(memcmp(ox, oy, sizeof ox) == 0, "ON at Init (0 dB, 1:1): bit-identical to off");
+        E->destroy(x); E->destroy(y);
+    }
+    void *a = E->create(NULL);
+    CHECK(getd(a, "cp_on") == 0.0 && getd(a, "cp_peak") == 1.0 && getd(a, "cp_rms") == 0.0, "off at Init, PEAK selected");
+    gets_(a, "cp_thr_display", b, sizeof b); CHECK(!strcmp(b, "0.0 dB"), "THRESHOLD '%s'", b);
+    gets_(a, "cp_ratio_display", b, sizeof b); CHECK(!strcmp(b, "1.0:1"), "RATIO '%s'", b);
+    gets_(a, "cp_att_display", b, sizeof b); CHECK(!strcmp(b, "4.16 ms"), "ATTACK '%s'", b);
+    gets_(a, "cp_rel_display", b, sizeof b); CHECK(!strcmp(b, "100 ms"), "RELEASE '%s'", b);
+    setd(a, "cp_ratio", 1.0); gets_(a, "cp_ratio_display", b, sizeof b); CHECK(!strcmp(b, "20:1"), "RATIO top '%s'", b);
+    setd(a, "cp_ratio", 0.0); gets_(a, "cp_ratio_display", b, sizeof b); CHECK(!strcmp(b, "1.0:1"), "RATIO bottom '%s'", b);
+    /* RMS / PEAK: exactly one; a tap on one turns the other off, and the change is reported */
+    gets_(a, "display_rev", b, sizeof b); unsigned r0 = (unsigned)atoi(b);
+    setp(a, "cp_rms", "1");
+    CHECK(getd(a, "cp_rms") == 1.0 && getd(a, "cp_peak") == 0.0, "RMS on turns PEAK off");
+    gets_(a, "display_rev", b, sizeof b); CHECK((unsigned)atoi(b) != r0, "and is reported (display_rev)");
+    setp(a, "cp_peak", "1"); CHECK(getd(a, "cp_peak") == 1.0 && getd(a, "cp_rms") == 0.0, "PEAK on turns RMS off");
+    setp(a, "cp_peak", "0"); CHECK(getd(a, "cp_peak") == 0.0 && getd(a, "cp_rms") == 1.0, "PEAK tapped off: RMS takes over");
+    gets_(a, "display_rev", b, sizeof b); r0 = (unsigned)atoi(b);
+    setp(a, "cp_rms", "1"); gets_(a, "display_rev", b, sizeof b); CHECK((unsigned)atoi(b) == r0, "the host's echo changes nothing and reports nothing");
+    { void *c = E->create(NULL); setp(c, "state", "mpcdj:2;cp_rms=1000000;cp_peak=1000000;");
+      CHECK(getd(c, "cp_peak") == 1.0 && getd(c, "cp_rms") == 0.0, "a state with both on loads as PEAK");
+      setp(c, "state", "mpcdj:2;cp_rms=1000000;cp_peak=0;"); CHECK(getd(c, "cp_rms") == 1.0 && getd(c, "cp_peak") == 0.0, "a state with RMS loads RMS");
+      setp(c, "state", "mpcdj:2;cp_rms=0;cp_peak=0;"); CHECK(getd(c, "cp_peak") == 1.0, "a state with neither loads PEAK");
+      E->destroy(c); }
+    E->destroy(a);
+
+    /* off: nothing; the COMP meter dark */
+    long pos = 0; int16_t last[256];
+    a = E->create(NULL); setd(a, "cp_thr", 0.8); setd(a, "cp_ratio", 1.0); run_tone(a, 16384, 1000, 128 * 200, &pos, last);
+    CHECK(peak16(last, 0, 256) > 16300 && getd(a, "cp_gr") == 0.0, "off: untouched, COMP meter dark (%d, %g)", peak16(last, 0, 256), getd(a, "cp_gr"));
+    E->destroy(a);
+    /* PEAK, -12 dB, 4:1, a -6 dBFS tone: 6 dB over -> 4.5 dB of reduction -> -10.5 dBFS */
+    a = E->create(NULL); pos = 0; setp(a, "cp_on", "On"); setd(a, "cp_thr", 0.8); setd(a, "cp_ratio", log(4.0) / log(20.0));
+    run_tone(a, 16384, 1000, 128 * 400, &pos, last);
+    double db = 20 * log10(peak16(last, 0, 256) / 32768.0);
+    CHECK(db > -10.6 && db < -9.7, "PEAK: a -6 dBFS tone comes out at about -10.5 dBFS (%.2f; the reduction eases between the waves' peaks)", db);
+    CHECK(getd(a, "cp_gr") > 0.2, "the COMP meter lights (%g)", getd(a, "cp_gr"));
+    { int fi = (int)lround(getd(a, "cgr_db_i") * (DJ_READOUT_INT_FRAMES - 1)); CHECK(fi >= 56 && fi <= 58, "its number reads about -4.5 dB (frame %d)", fi); }
+    /* RMS: the same tone's RMS is 3 dB lower (-9 dB): 3 dB over, at the knee's edge -> 2.25 dB -> about -8.25 dBFS */
+    setp(a, "cp_rms", "On"); run_tone(a, 16384, 1000, 128 * 400, &pos, last);
+    db = 20 * log10(peak16(last, 0, 256) / 32768.0);
+    CHECK(fabs(db + 8.25) < 0.5, "RMS: the same tone comes out at about -8.25 dBFS (%.2f)", db);
+    E->destroy(a);
+    /* RMS lets a short spike past that PEAK catches: a 2 ms click on silence */
+    {
+        double outpk[2];
+        for (int m = 0; m < 2; m++) {
+            void *x = E->create(NULL); setp(x, "cp_on", "On"); setd(x, "cp_thr", 0.5); setd(x, "cp_ratio", 1.0); setd(x, "cp_att", 0.0);
+            if (m) setp(x, "cp_rms", "On");
+            static int16_t o[8820]; run_burst(x, 30000, 1000, 8820, 4410, o);
+            int16_t clk[8820]; memcpy(clk, o, sizeof clk);
+            outpk[m] = peak16(o, 4410 + 44, 4410 + 88);   /* 1..2 ms in */
+            E->destroy(x);
+        }
+        CHECK(outpk[1] > outpk[0] * 2, "a fast hit: RMS lets it past (%g), PEAK catches it (%g)", outpk[1], outpk[0]);
+    }
+    /* CLIP: rounded to 0 dBFS (THRESHOLD at 0 dB, 1:1, a +6 dB signal) -- the maximizer then has nothing to do */
+    a = E->create(NULL); pos = 0; setp(a, "cp_on", "On"); setp(a, "cp_clip", "On"); setp(a, "eq_on", "Off"); setd(a, "cp_thr", 1.0); setd(a, "cp_ratio", 0.0);
+    setd(a, "in_gain", dj_taper_gain_n_from_db(12.0f, DJ_IN_N0, DJ_IN_MAX_DB));
+    run_tone(a, 16384, 441, 128 * 1000, &pos, last);   /* 2.9 s: past the readout's hold of the first 10 ms (CLIP fading in) */
+    { int fi = (int)lround(getd(a, "gr_db_i") * (DJ_READOUT_INT_FRAMES - 1)); CHECK(fi >= 61, "CLIP keeps the maximizer idle (frame %d)", fi); }
+    CHECK(fabs(20 * log10(peak16(last, 0, 256) / 32768.0) + 1.0) < 0.15, "2.1.4: clipped at full scale, then -1 dB (%.2f dB)", 20 * log10(peak16(last, 0, 256) / 32768.0));
+    /* a quiet signal is only lowered 1 dB: the clip touches nothing under -0.1 dBFS */
+    setd(a, "in_gain", DJ_IN_N0); run_tone(a, 30000, 441, 128 * 100, &pos, last);
+    CHECK(fabs(20 * log10(peak16(last, 0, 256) / 30000.0) + 1.0) < 0.05, "under -0.1 dBFS: just -1 dB (%.2f dB)", 20 * log10(peak16(last, 0, 256) / 30000.0));
+    E->destroy(a);
+}
+
+
+static void test_flip_and_max_on(void)
+{
+    puts("2.1.3: gate FLIP, maximizer ON/OFF");
+    long pos = 0; int16_t last[256];
+    /* FLIP, threshold -40 dB: a loud tone (-12 dBFS) is muted, a quiet one (-84 dBFS) passes */
+    void *a = E->create(NULL);
+    CHECK(getd(a, "gt_flip") == 0.0 && getd(a, "mx_on") == 1.0, "FLIP off and the maximizer on by default");
+    setp(a, "eq_on", "Off"); setd(a, "gt_thr", 0.5); setp(a, "gt_flip", "On");
+    run_tone(a, 8192, 441, 128 * 400, &pos, last);
+    CHECK(peak16(last, 0, 256) == 0, "FLIP: above the threshold, muted (%d)", peak16(last, 0, 256));
+    run_tone(a, 2.0, 100, 128 * 800, &pos, last);
+    int nz = 0; for (int k = 0; k < 256; k++) if (last[k]) nz = 1;
+    CHECK(nz, "FLIP: below the threshold (after hold and release), it passes");
+    setp(a, "gt_flip", "Off"); run_tone(a, 8192, 441, 128 * 200, &pos, last);
+    CHECK(peak16(last, 0, 256) > 8000, "FLIP off again: the loud tone passes (%d)", peak16(last, 0, 256));
+    E->destroy(a);
+    /* a flipped gate starts passing: no dip at the start of a quiet sound */
+    a = E->create(NULL); setp(a, "eq_on", "Off"); setd(a, "gt_thr", 0.5); setp(a, "gt_flip", "On"); pos = 0;
+    { static int16_t o[4410]; run_burst(a, 100, 441, 4410, 0, o);
+      CHECK(peak16(o, 100, 4410) > 95, "a flipped gate starts open (%d)", peak16(o, 100, 4410)); }
+    E->destroy(a);
+
+    /* maximizer OFF: no threshold gain, no limiting, no ceiling; OUTPUT still trims; the MAX meter dark */
+    a = E->create(NULL); pos = 0; setp(a, "eq_on", "Off"); setd(a, "mx_thr", 0.6);   /* -12 dB: +12 dB of drive when on */
+    run_tone(a, 8192, 441, 128 * 200, &pos, last);
+    CHECK(peak16(last, 0, 256) > 31000, "on: a -12 dBFS tone is raised to the ceiling (%d)", peak16(last, 0, 256));
+    setp(a, "mx_on", "Off"); run_tone(a, 8192, 441, 128 * 600, &pos, last);
+    CHECK(abs(peak16(last, 0, 256) - 8192) < 20, "off: the tone passes as it came (%d)", peak16(last, 0, 256));
+    CHECK(getd(a, "mx_gr") == 0.0, "off: the MAX meter is dark (%g)", getd(a, "mx_gr"));
+    setd(a, "mx_out", dj_taper_n6()); run_tone(a, 8192, 441, 128 * 100, &pos, last);
+    CHECK(abs(peak16(last, 0, 256) - 4106) < 60, "off: OUTPUT still trims (-6 dB: %d)", peak16(last, 0, 256));
+    E->destroy(a);
+    a = E->create(NULL); pos = 0; setp(a, "eq_on", "Off"); setp(a, "mx_on", "Off"); setd(a, "in_gain", dj_taper_gain_n_from_db(6.0f, DJ_IN_N0, DJ_IN_MAX_DB));
+    run_tone(a, 30000, 441, 128 * 100, &pos, last);
+    CHECK(getd(a, "clips_display") >= 0 && peak16(last, 0, 256) >= 32767, "off: nothing holds the ceiling (the output clips at full scale)");
+    E->destroy(a);
+}
+
+static void test_retired_switches(void)
+{
+    puts("2.1.1: GAIN always on, PHASE INVERT alone");
+    long pos = 0; int16_t last[256];
+    void *a = E->create(NULL); setd(a, "in_gain", 0.0); setp(a, "in_on", "Off");
+    run_tone(a, 16384, 441, 128 * 100, &pos, last);
+    CHECK(peak16(last, 0, 256) == 0, "in_on Off no longer bypasses GAIN (-inf: silence)");
+    E->destroy(a);
+    void *p = E->create(NULL), *q = E->create(NULL); long pp = 0, pq = 0; int16_t lp[256], lq[256];
+    setp(p, "ph_inv", "On"); setp(p, "ph_on", "Off"); setp(p, "eq_on", "Off"); setp(q, "eq_on", "Off");
+    run_tone(p, 8000, 441, 128 * 50, &pp, lp); run_tone(q, 8000, 441, 128 * 50, &pq, lq);
+    int inv = 1; for (int k = 0; k < 256; k++) if (abs(lp[k] + lq[k]) > 1) inv = 0;
+    CHECK(inv, "PHASE INVERT inverts with ph_on Off");
+    E->destroy(p); E->destroy(q);
 }
 
 static void test_blocks_and_determinism(void)
@@ -474,6 +771,10 @@ int main(void)
     test_meters_and_views();
     test_meter_taps();
     test_blocks_and_determinism();
+    test_transient();
+    test_compressor();
+    test_retired_switches();
+    test_flip_and_max_on();
     printf("UTILITY diagnostics (2.0.2)\n");
     {
         void *u = E->create(NULL);

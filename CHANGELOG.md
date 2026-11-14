@@ -1,5 +1,75 @@
 # Changelog
 
+## 2.2.0 (Release, 2026-11-13): This is the release version including all changes made in beta versions 2.1.1, 2.1.2, 2.1.3, 2.1.4, and 2.1.5.
+
+- **INPUT page:** STEREO (GAIN, WIDTH, BASS FREQ, BALANCE, each with its button), the new TRANSIENT shaper (ATTACK, PUMP, SUSTAIN, SPEED, with CLIP, -3DB, -6DB, ON/OFF) and GATE (moved from OUTPUT, now before the filters, with FLIP and ON/OFF).
+- **OUTPUT page:** the new COMPRESSOR (THRESHOLD, ATTACK, RELEASE, RATIO, with CLIP, RMS, PEAK, ON/OFF), IN / COMP / MAX / OUT meters, and the MAXIMIZER with an ON/OFF.
+- **Q-Links follow the buttons:** tapping a button switches the Q-Links to its column.
+- **CPU:** benched on an MPC One (Gen2), MPC OS 3.10.1: worst p99 3.1 % and worst block 3.4 % of one audio block, PASS (docs/BENCH.md).
+- **Tested on:** MPC One (Gen2), MPC Live III (Gen2) and Force (Gen1), MPC OS 3.10.1.
+- **Project compatibility:** parameters have only been added. GAIN always applies, and PHASE INVERT works on its own (the old GAIN ON/OFF and PHASE ON/OFF switches are retired).
+
+## 2.1.5 (Test Build, 2026-11-13): Buttons Select Their Q-Link Bank
+
+**This is a test build, not an official release.** No changes to the sound.
+
+- **Q-Links follow the buttons:** Tapping a button now switches the Q-Links to that button's column, as touching a knob does. For example, tapping ON/OFF in TRANSIENT puts ATTACK, PUMP, SUSTAIN and SPEED on the Q-Links. This covers every button on the INPUT, FILTER and OUTPUT pages, including the filter slope buttons and EQ / ISOLATOR. The button still does what it did.
+- **Project compatibility:** No parameters added or changed.
+
+## 2.1.4 (Test Build, 2026-11-13): Gate FLIP Clicks Fixed, Compressor CLIP Level
+
+**This is a test build, not an official release.**
+
+- **GATE FLIP:** Fixed the slight clicking in FLIP mode (worst at the shortest ATTACK). In FLIP mode the gate turns the level down while the sound is loud, so each duck and return now starts and ends smoothly (an S-curve of about 3 ms). The normal gate is unchanged.
+- **Compressor CLIP:** Now clips at -0.1 dB, so only peaks right at full scale are clipped, and then lowers the level going into the compressor by 1 dB, keeping headroom in the stage before the compressor.
+- **Project compatibility:** No parameters added or changed.
+
+## 2.1.3 (Test Build, 2026-11-13): Gate FLIP and Maximizer ON/OFF
+
+**This is a test build, not an official release.**
+
+- **GATE FLIP:** New FLIP button to the right of HOLD (it reads FLIP, with no label below). FLIP turns the gate around: audio above the threshold is muted (ducked) and audio below it passes. ATTACK sets how quickly it ducks when the signal goes over the threshold, RELEASE how quickly the sound returns (after HOLD) once it falls back under. Off at Init.
+- **MAXIMIZER ON/OFF:** New ON/OFF button to the right of OUTPUT. Off bypasses the maximizer (its threshold, limiting and 0 dB ceiling); the OUTPUT knob still works either way. On by default, so existing projects keep their maximizer.
+- **Project compatibility:** Two parameters added (Gate Flip, Max On). Existing projects are unaffected.
+
+## 2.1.2 (Test Build, 2026-11-13): Gate ON/OFF, Value Buttons, OUTPUT Meter Spacing, Compressor CLIP Position
+
+**This is a test build, not an official release.**
+
+- **GATE:** New ON/OFF button to the right of RELEASE (on by default, so existing projects keep their gate). The gate knobs now line up with the knobs in the other columns.
+- **Value buttons:** The -3DB, -6DB, RMS and PEAK buttons now show their value inside the button instead of ON, with no label underneath. Same size as before.
+- **OUTPUT page meters:** Each meter pair is now 18 pixels from the next, and the outer pairs 18 pixels from the panel border. The middle panel is wider to fit them; the COMPRESSOR and MAXIMIZER panels keep their size and move outward.
+- **Compressor CLIP:** Now before the compressor (after the DJ EQ and filters) instead of after it.
+- **Project compatibility:** One parameter added (Gate On). Existing projects are unaffected.
+
+## 2.1.1 (Test Build, 2026-11-13): Transient Shaper, Compressor, and Re-arranged INPUT and OUTPUT Pages
+
+**This is a test build, not an official release.**
+
+- **INPUT page:** Now STEREO | TRANSIENT | GATE. Each control in STEREO and TRANSIENT has its button to the right of it.
+  - **STEREO** (replaces GAIN + PHASE, WIDTH + BASS MONO and BALANCE): GAIN with PHASE INVERT; WIDTH with WIDTH ON/OFF; BASS FREQ with BASS MONO ON/OFF; BALANCE with BALANCE ON/OFF.
+  - GAIN is always on (GAIN ON/OFF removed). PHASE ON/OFF removed: PHASE INVERT does the job on its own.
+  - **TRANSIENT** (new): ATTACK with CLIP; PUMP with -3 DB; SUSTAIN with -6 DB; SPEED with ON/OFF.
+    - **ATTACK** (-100 % to +100 %): raises or softens the first moments of each hit.
+    - **PUMP** (0 to 100 %): dips the level right after each hit, for punch without a higher peak.
+    - **SUSTAIN** (-100 % to +100 %): brings the tail of each sound up or cuts it short.
+    - **SPEED:** how quickly the shaper reacts; higher is shorter and snappier, lower is smoother and wider.
+    - **CLIP:** a soft clipper at 0 dB at the end of the shaper, then the level is lowered 3 dB.
+    - **-3 DB / -6 DB:** lower the shaper's output after the clipper (both together: -9 dB).
+    - **ON/OFF:** turns the shaper on and off (off at Init). While CLIP is off, automatic level attenuation lowers any output that goes over 0 dB back to 0 dB.
+  - **GATE:** moved here from the OUTPUT page. In the sound it now comes after the transient shaper and before the DJ EQ and filters (it used to come after them).
+  - **Q-Links:** 1-4 GAIN, WIDTH, BASS FREQ, BALANCE; 5-8 ATTACK, PUMP, SUSTAIN, SPEED; 9-12 the gate.
+- **OUTPUT page:** Now COMPRESSOR | meters | MAXIMIZER.
+  - **COMPRESSOR** (new, the same compressor model as CTRL Giant): THRESHOLD with CLIP; ATTACK with RMS; RELEASE with PEAK; RATIO with ON/OFF (off at Init; THRESHOLD 0.0 dB and RATIO 1.0:1 at Init, so turning it on changes nothing until it is set).
+    - **PEAK:** reacts to every peak at once: tight and precise.
+    - **RMS:** reacts to the average level: smooth, short spikes pass.
+    - Only one of RMS and PEAK can be on: tapping one turns the other off.
+    - **CLIP:** a soft clipper at 0 dB after the compressor.
+  - **Meters:** IN (after the filters, before the compressor), COMP (compressor reduction), MAX (maximizer reduction), OUT.
+  - **Q-Links:** 1-4 the compressor, 5-8 the maximizer.
+- **FILTER page:** Its input meter now reads after the gate (before the DJ EQ).
+- **Project compatibility:** Parameters have only been added. Existing projects load, with two differences: GAIN always applies (a project saved with GAIN switched off now hears its GAIN setting), and PHASE INVERT applies even where PHASE ON/OFF was off.
+
 ## 2.1.0 (Release, 2026-11-13): This is the release version including all changes made in beta versions 2.0.2, 2.0.3, and 2.0.4.
 
 **Release:** This version is released both via Open MPC Plugin Manager and available for download from https://tonyalonso.tech/plugins.html

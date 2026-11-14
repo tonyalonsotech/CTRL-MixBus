@@ -10,6 +10,8 @@
 #include "../src/dsp/dj_filter.h"
 #include "../src/dsp/dj_gate.h"
 #include "../src/dsp/dj_maximizer.h"
+#include "../src/dsp/dj_transient.h"
+#include "../src/dsp/dj_comp.h"
 #include "../src/dsp/dj_meter.h"
 #include "../src/dsp/dj_taper.h"
 #include "../src/dsp/dj_readout.h"
@@ -602,10 +604,86 @@ static void test_readout(void)
     CHECK(r.held_db < -999.0f, "silence falls back to -inf");
 }
 
+
+/* 2.1.1: the transient shaper and the compressor alone: hostile input, extreme settings, odd block lengths */
+static void test_transient_comp(void)
+{
+    puts("transient shaper + compressor (2.1.1)");
+    dj_transient_t t; dj_comp_t c;
+    float l[DJ_BLOCK], r[DJ_BLOCK];
+    for (int m = 0; m < 4; m++) {
+        dj_transient_init(&t, DJ_FS); dj_comp_init(&c, DJ_FS);
+        dj_transient_set(&t, m & 1 ? 1.0f : -1.0f, 1.0f, m & 2 ? 1.0f : -1.0f, m * 0.33f, m & 1, 1, m & 2);
+        dj_comp_set(&c, -60.0f, 20.0f, 0.1f, 5.0f, m & 1, m & 2);
+        int ok = 1; srand(11 + m);
+        for (int it = 0; it < 2000; it++) {
+            int n = 1 + rand() % DJ_BLOCK;
+            for (int i = 0; i < n; i++) {
+                float v = (rand() % 2001 - 1000) / 100.0f;               /* up to +20 dBFS */
+                if (it % 97 == 3 && i == 0) v = NAN;
+                if (it % 89 == 5 && i == 1) v = INFINITY;
+                l[i] = v; r[i] = -v * 0.5f;
+                if (it % 300 > 200) l[i] = r[i] = 0.0f;                  /* and silence */
+            }
+            dj_transient_process(&t, l, r, n);
+            dj_comp_process(&c, l, r, n);
+            if (!finite_buf(l, n) || !finite_buf(r, n)) ok = 0;
+            float g, d; dj_comp_take_stats(&c, &g, &d); if (!(g >= 0.0f) || g != g) ok = 0;
+        }
+        CHECK(ok, "mode %d: NaN, inf, +20 dBFS, silence, any block length: always finite", m);
+        CHECK(t.auto_g > 0.0 && t.auto_g <= 1.0 && c.gr >= 0.0, "mode %d: gains in range (auto %g, gr %g)", m, t.auto_g, c.gr);
+    }
+    /* the CLIP shape: untouched under the knee, never past full scale, odd */
+    float k = dj_db_to_lin(-6.0f); int ok = 1;
+    for (int i = 0; i <= 4000; i++) { float x = i / 100.0f; float y = dj_soft_clip(x, k);
+        if (y > 1.0f || y < 0.0f || (x <= k && y != x) || dj_soft_clip(-x, k) != -y) ok = 0; }
+    CHECK(ok, "soft clip: identity under the knee, <= 0 dBFS above, odd");
+    /* 2.1.2: CLIP is at the compressor's INPUT: a +12 dB tone, THRESHOLD -6 dB, 2:1. Clipped first (and, 2.1.4, lowered 1 dB), the
+     * compressor sees about -1 dB (2.5 dB of reduction: about -3.5 dB out); clipped after, +12 dB (9 dB: +3 dB, then clipped). */
+    {
+        dj_comp_init(&c, DJ_FS); dj_comp_set(&c, -6.0f, 2.0f, 0.1f, 2000.0f, 0, 1);
+        float pk = 0.0f;
+        for (int b = 0; b < 400; b++) {
+            for (int i = 0; i < DJ_BLOCK; i++) { l[i] = r[i] = 4.0f * sinf(2.0f * 3.14159265f * 441.0f * (b * DJ_BLOCK + i) / DJ_FS); }
+            dj_comp_process(&c, l, r, DJ_BLOCK);
+            if (b == 399) for (int i = 0; i < DJ_BLOCK; i++) pk = fmaxf(pk, fabsf(l[i]));
+        }
+        CHECK(20.0f * log10f(pk) < -2.8f && 20.0f * log10f(pk) > -4.2f, "CLIP before the compressor: about -3.5 dB out (%.2f dB)", 20.0f * log10f(pk));
+    }
+    /* compressor at rest (1:1): exact pass-through */
+    dj_comp_init(&c, DJ_FS); dj_comp_set(&c, -30.0f, 1.0f, 1.0f, 50.0f, 0, 0);
+    for (int i = 0; i < DJ_BLOCK; i++) { l[i] = sinf(i * 0.1f) * 0.9f; r[i] = l[i] * 0.5f; }
+    float l0[DJ_BLOCK]; memcpy(l0, l, sizeof l);
+    dj_comp_process(&c, l, r, DJ_BLOCK);
+    CHECK(!memcmp(l0, l, sizeof l), "compressor at 1:1: bit-exact pass-through");
+}
+
+
+/* 2.1.4: FLIP ducks while the sound is loud, so its gain must turn smoothly: a 100 Hz tone swelling from -60 to -6 dB and back (no
+ * click of its own), threshold -10 dB, attack 0.1 ms. A click shows as a spike in the output's 2nd difference. */
+static double flip_click(int flip)
+{
+    dj_gate_t g; dj_gate_init(&g, DJ_FS); dj_gate_set_flip(&g, flip); dj_gate_set(&g, -10.0f, 0.1f, 50.0f, 100.0f); dj_gate_reset(&g);
+    float l[1], r[1]; double y0 = 0, y1 = 0, x0 = 0, x1 = 0, wo = 0, wi = 0;
+    for (int i = 0; i < 88200; i++) {
+        double t = i / 44100.0, e = 0.5 * (1 - cos(2 * M_PI * t)), x = pow(10, (-60 + 54 * e) / 20) * sin(2 * M_PI * 100 * t);
+        l[0] = r[0] = (float)x; dj_gate_process(&g, l, r, 1);
+        if (i > 2) { double d = fabs(l[0] - 2 * y1 + y0), di = fabs(x - 2 * x1 + x0); if (d > wo) wo = d; if (di > wi) wi = di; }
+        y0 = y1; y1 = l[0]; x0 = x1; x1 = x;
+    }
+    return wo / wi;
+}
+static void test_gate_flip_click(void)
+{
+    puts("gate FLIP: no click (2.1.4)");
+    double c = flip_click(1);
+    CHECK(c < 1.5, "FLIP at 0.1 ms attack: the gain turns no sharper than the tone itself (%.2f x)", c);
+}
+
 int main(void)
 {
     test_gain(); test_phase(); test_width(); test_balance(); test_bassmono(); test_eq();
-    test_filters(); test_gate(); test_maximizer(); test_meter_taper(); test_readout(); test_stress_and_timing();
+    test_filters(); test_gate(); test_maximizer(); test_meter_taper(); test_readout(); test_transient_comp(); test_gate_flip_click(); test_stress_and_timing();
     printf("\n%d checks, %d failed\n", g_run, g_fail);
     puts(g_fail ? "FAILED" : "PASSED");
     return g_fail ? 1 : 0;

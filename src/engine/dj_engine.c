@@ -3,8 +3,13 @@
  * Contract (wrapper/engine.h): 44.1 kHz, interleaved int16 stereo, 128-frame blocks, an effect implements process().
  * Signal flow, each stage with its own true bypass crossfade (src/dsp/dj_common.h dj_xfade_t):
  *
- *   in -> [meter] -> Input Gain -> Phase Invert -> Stereo Width -> Bass Mono -> Balance -> DJ EQ/Isolator
- *      -> Low-Pass -> High-Pass -> Gate -> [maximizer input meter] -> Maximizer -> [meter] -> out
+ *   in -> Input Gain -> [INPUT meter] -> Phase Invert -> Stereo Width -> Bass Mono -> Balance -> Transient Shaper -> Gate
+ *      -> [FILTER meter] -> DJ EQ/Isolator -> Low-Pass -> High-Pass -> [OUTPUT page IN meter] -> Compressor -> Maximizer
+ *      -> [OUT meter] -> out
+ * (2.1.3: the gate's FLIP mutes above the threshold instead of below; the maximizer's ON/OFF bypasses it, its OUTPUT trim still
+ * applying.)
+ * (2.1.1, the user's spec: the transient shaper is new; the gate moved from after the filters to before them; the compressor is
+ * new. GAIN is always on and PHASE INVERT works alone: in_on and ph_on are kept for saved projects but do nothing.)
  *
  * Each "_on" switch is 1 while its stage processes and 0 while it is bypassed. A switch or option change is reported back to
  * the host (display_rev), so the on-screen switch and the curve number follow a Q-Link turn: the wrapper snaps a Q-Link move to
@@ -33,6 +38,8 @@
 #include "../dsp/dj_filter.h"
 #include "../dsp/dj_gate.h"
 #include "../dsp/dj_maximizer.h"
+#include "../dsp/dj_transient.h"
+#include "../dsp/dj_comp.h"
 #include "../dsp/dj_meter.h"
 #include "../dsp/dj_taper.h"
 #include "../dsp/dj_view.h"
@@ -64,12 +71,12 @@ static const pdef_t PDEF[P_COUNT] = {
 };
 
 /* stages, in signal order */
-enum { S_IN, S_PHASE, S_WIDTH, S_BASS, S_BAL, S_EQ, S_LP, S_HP, S_GATE, S_MAX, S_COUNT };
+enum { S_IN, S_PHASE, S_WIDTH, S_BASS, S_BAL, S_TRANS, S_GATE, S_EQ, S_LP, S_HP, S_COMP, S_MAX, S_COUNT };
 #define BYPASS_FADE_MS 6.0f
 #define GATE_OFF_KNOB 0.0005         /* gate threshold knob at or below this = -80 dB = gate off */
-#define N_BAR_FRAMES 9               /* m_in_l/r, m_out_l/r, mx_in_l/r, mx_gr, m_fin_l/r */
+#define N_BAR_FRAMES 10              /* m_in_l/r, m_out_l/r, mx_in_l/r, mx_gr, m_fin_l/r, cp_gr */
 #define N_METER_FRAMES (N_BAR_FRAMES + 2 * RD_COUNT)   /* then the dB readouts x (whole, tenth) */
-enum { RD_IN, RD_OUT, RD_MXI, RD_GR, RD_FIN, RD_COUNT };
+enum { RD_IN, RD_OUT, RD_MXI, RD_GR, RD_FIN, RD_CGR, RD_COUNT };
 
 typedef struct {
     double v[P_COUNT];               /* current value of every parameter (knob 0..1, or option index) */
@@ -80,12 +87,14 @@ typedef struct {
     dj_balance_t bal;
     dj_eq_t eq;
     dj_filter_t lp, hp;
+    dj_transient_t ts;
     dj_gate_t gate;
+    dj_comp_t cp;
     dj_maximizer_t mx;
     dj_xfade_t xf[S_COUNT];
     int was_off[S_COUNT];
-    dj_meter_t min, mout, mxin, mfin;   /* min: after the gain stage; mfin: after balance, before the EQ */
-    dj_grmeter_t gr;
+    dj_meter_t min, mout, mxin, mfin;   /* min: after the gain stage; mfin: after the gate, before the EQ; mxin: before the compressor */
+    dj_grmeter_t gr, cgr;            /* the maximizer's and (2.1.1) the compressor's reduction */
     dj_readout_t rd[RD_COUNT];       /* the dB numbers under the meters (RD_GR holds the reduction, >= 0) */
     int last_frame[N_METER_FRAMES];
     unsigned rev;                    /* display_rev: bumped when a meter's filmstrip frame or a curve picture changed */
@@ -160,6 +169,30 @@ static void mx_apply(inst_t *s)
                dj_taper_release_ms((float)s->v[P_MX_REL]), dj_taper_mx_out_db((float)s->v[P_MX_OUT]));
 }
 
+/* the transient shaper's ATTACK / SUSTAIN knob (0..1) -> -1..+1, exactly 0 within half a percent of the middle (a Q-Link's 64) */
+static float ts_bipolar(double n) { float b = (float)n * 2.0f - 1.0f; return fabsf(b) < 0.01f ? 0.0f : b; }
+
+static void ts_apply(inst_t *s)
+{
+    dj_transient_set(&s->ts, ts_bipolar(s->v[P_TS_ATT]), (float)s->v[P_TS_PUMP], ts_bipolar(s->v[P_TS_SUS]), (float)s->v[P_TS_SPEED],
+                     on(s, P_TS_CLIP), on(s, P_TS_M3), on(s, P_TS_M6));
+}
+
+static void cp_apply(inst_t *s)
+{
+    dj_comp_set(&s->cp, dj_comp_thresh_db((float)s->v[P_CP_THR]), dj_comp_ratio((float)s->v[P_CP_RATIO]), dj_taper_attack_ms((float)s->v[P_CP_ATT]),
+                dj_taper_release_ms((float)s->v[P_CP_REL]), on(s, P_CP_RMS), on(s, P_CP_CLIP));
+}
+
+/* RMS and PEAK (the compressor's detector): exactly one is on. `id` was just set: if it is on, the other goes off; if it is off,
+ * the other comes on. Returns 1 when the other one changed (to be reported to the host). */
+static int detector_pair(inst_t *s, int id)
+{
+    int other = id == P_CP_RMS ? P_CP_PEAK : P_CP_RMS;
+    if (on(s, id) == on(s, other)) { s->v[other] = on(s, id) ? 0.0 : 1.0; return 1; }
+    return 0;
+}
+
 static void gate_apply(inst_t *s)
 {
     dj_gate_set(&s->gate, dj_taper_thresh_db((float)s->v[P_GT_THR]), dj_taper_attack_ms((float)s->v[P_GT_ATT]),
@@ -178,9 +211,8 @@ static void apply(inst_t *s, int id)
     if (!IS_VALUE(PDEF[id].kind)) return;
     const double *v = s->v;
     switch (id) {
-    case P_IN_ON: dj_xfade_set(&s->xf[S_IN], on(s, P_IN_ON)); break;
+    case P_IN_ON: case P_PH_ON: break;   /* (2.1.1) kept for saved projects; GAIN is always on, PHASE INVERT works alone */
     case P_IN_GAIN: dj_gain_set_db(&s->gin, dj_taper_gain_db((float)v[P_IN_GAIN], DJ_IN_N0, DJ_IN_MAX_DB)); break;
-    case P_PH_ON: dj_xfade_set(&s->xf[S_PHASE], on(s, P_PH_ON)); break;
     case P_PH_INV: dj_phase_set(&s->phase, v[P_PH_INV] >= 0.5); break;
     case P_WD_ON: dj_xfade_set(&s->xf[S_WIDTH], on(s, P_WD_ON)); break;
     case P_WD_AMT: dj_width_set(&s->width, (float)v[P_WD_AMT]); break;
@@ -201,11 +233,17 @@ static void apply(inst_t *s, int id)
         dj_xfade_set(&s->xf[S_HP], on(s, P_HP_ON) && v[P_HP_CUT] > 0.001);
         dj_filter_set(&s->hp, (float)v[P_HP_CUT], (float)v[P_HP_RES], (int)v[P_HP_CURVE]); break;
     case P_HP_RES: case P_HP_CURVE: dj_filter_set(&s->hp, (float)v[P_HP_CUT], (float)v[P_HP_RES], (int)v[P_HP_CURVE]); break;
-    case P_GT_THR:
-        dj_xfade_set(&s->xf[S_GATE], v[P_GT_THR] > GATE_OFF_KNOB);   /* the minimum threshold switches the gate off, click-free */
+    case P_GT_THR: case P_GT_ON:   /* the minimum threshold or (2.1.2) its ON/OFF switch the gate off, click-free */
+        dj_xfade_set(&s->xf[S_GATE], on(s, P_GT_ON) && v[P_GT_THR] > GATE_OFF_KNOB);
         gate_apply(s); break;
     case P_GT_ATT: case P_GT_HOLD: case P_GT_REL: gate_apply(s); break;
+    case P_GT_FLIP: dj_gate_set_flip(&s->gate, on(s, P_GT_FLIP)); break;
+    case P_MX_ON: dj_max_set_on(&s->mx, on(s, P_MX_ON)); break;
     case P_MX_THR: case P_MX_ATT: case P_MX_REL: case P_MX_OUT: mx_apply(s); break;
+    case P_TS_ON: dj_xfade_set(&s->xf[S_TRANS], on(s, P_TS_ON)); break;
+    case P_TS_ATT: case P_TS_PUMP: case P_TS_SUS: case P_TS_SPEED: case P_TS_CLIP: case P_TS_M3: case P_TS_M6: ts_apply(s); break;
+    case P_CP_ON: dj_xfade_set(&s->xf[S_COMP], on(s, P_CP_ON)); break;
+    case P_CP_THR: case P_CP_ATT: case P_CP_REL: case P_CP_RATIO: case P_CP_CLIP: case P_CP_RMS: case P_CP_PEAK: cp_apply(s); break;
     default: break;   /* meters */
     }
 }
@@ -221,7 +259,9 @@ static void reset_stage(inst_t *s, int st)
     case S_EQ: dj_eq_reset(&s->eq); break;
     case S_LP: dj_filter_reset(&s->lp); break;
     case S_HP: dj_filter_reset(&s->hp); break;
+    case S_TRANS: dj_transient_reset(&s->ts); break;
     case S_GATE: dj_gate_reset(&s->gate); break;
+    case S_COMP: dj_comp_reset(&s->cp); break;
     case S_MAX: dj_max_reset(&s->mx); break;
     }
 }
@@ -237,7 +277,9 @@ static void run_dsp(inst_t *s, int st, float *l, float *r, int n)
     case S_EQ: dj_eq_process(&s->eq, l, r, n); break;
     case S_LP: dj_filter_process(&s->lp, l, r, n); break;
     case S_HP: dj_filter_process(&s->hp, l, r, n); break;
+    case S_TRANS: dj_transient_process(&s->ts, l, r, n); break;
     case S_GATE: dj_gate_process(&s->gate, l, r, n); break;
+    case S_COMP: dj_comp_process(&s->cp, l, r, n); break;
     case S_MAX: dj_max_process(&s->mx, l, r, n); break;
     }
 }
@@ -297,11 +339,12 @@ static void *create(const char *data_dir)
     dj_phase_init(&s->phase, DJ_FS); dj_width_init(&s->width, DJ_FS); dj_bassmono_init(&s->bass, DJ_FS);
     dj_balance_init(&s->bal, DJ_FS); dj_eq_init(&s->eq, DJ_FS);
     dj_filter_init(&s->lp, DJ_FS, DJ_FLT_LP); dj_filter_init(&s->hp, DJ_FS, DJ_FLT_HP);
-    dj_gate_init(&s->gate, DJ_FS); dj_max_init(&s->mx, DJ_FS);
-    dj_meter_init(&s->min, DJ_FS); dj_meter_init(&s->mout, DJ_FS); dj_meter_init(&s->mxin, DJ_FS); dj_meter_init(&s->mfin, DJ_FS); dj_grmeter_init(&s->gr, DJ_FS);
+    dj_transient_init(&s->ts, DJ_FS); dj_gate_init(&s->gate, DJ_FS); dj_comp_init(&s->cp, DJ_FS); dj_max_init(&s->mx, DJ_FS);
+    dj_meter_init(&s->min, DJ_FS); dj_meter_init(&s->mout, DJ_FS); dj_meter_init(&s->mxin, DJ_FS); dj_meter_init(&s->mfin, DJ_FS);
+    dj_grmeter_init(&s->gr, DJ_FS); dj_grmeter_init(&s->cgr, DJ_FS);
     for (int i = 0; i < RD_COUNT; i++) dj_readout_init(&s->rd[i], DJ_FS);
     s->in_shown = s->out_shown = -9999;                 /* UTILITY: no peak yet ("-inf dB") */
-    s->rd[RD_GR].held_db = 0.0f;                        /* no reduction reads "0.0 dB", not "-inf" */
+    s->rd[RD_GR].held_db = s->rd[RD_CGR].held_db = 0.0f;   /* no reduction reads "0.0 dB", not "-inf" */
     for (int i = 0; i < S_COUNT; i++) dj_xfade_init(&s->xf[i], DJ_FS, BYPASS_FADE_MS, 1.0f);
     for (int i = 0; i < P_COUNT; i++) apply(s, i);
     for (int i = 0; i < S_COUNT; i++) { s->xf[i].mix = s->xf[i].target; s->was_off[i] = dj_xfade_off(&s->xf[i]); }
@@ -362,6 +405,7 @@ static void state_read(inst_t *s, const char *text)
     }
     nv[P_LP_CRV] = nv[P_LP_CURVE] / (DJ_FLT_NUM_CURVES - 1);                        /* the Q-Link slope controls follow */
     nv[P_HP_CRV] = nv[P_HP_CURVE] / (DJ_FLT_NUM_CURVES - 1);
+    if ((nv[P_CP_RMS] >= 0.5) == (nv[P_CP_PEAK] >= 0.5)) { nv[P_CP_RMS] = 0.0; nv[P_CP_PEAK] = 1.0; }   /* exactly one detector: PEAK */
     for (int i = 0; i < P_COUNT; i++) if (IS_VALUE(PDEF[i].kind)) s->v[i] = nv[i];   /* assign all, then apply all: */
     for (int i = 0; i < P_COUNT; i++) if (IS_VALUE(PDEF[i].kind)) apply(s, i);        /* a stage sees one consistent set */
     refresh_views(s);
@@ -392,6 +436,8 @@ static void set_param(void *inst, const char *key, const char *val)
      * with no audio running (until 0.2.0 only a moving meter moved display_rev). Only on a real change: the host's echo of that
      * report sets the same value again and must not start another round. */
     if ((PDEF[id].kind == K_TOG || PDEF[id].kind == K_OPT) && s->v[id] != old) s->rev++;
+    /* RMS / PEAK: the other button follows, and is reported so the screen shows it */
+    if ((id == P_CP_RMS || id == P_CP_PEAK) && detector_pair(s, id)) { cp_apply(s); s->rev++; }
     /* the filter slope: a Q-Link turn of lp_crv picks the slope option; a tap (or preset, automation) on the option moves lp_crv
      * to that slope. Either way the other one is reported (display_rev), only when it really changes, so the host's echo of the
      * report changes nothing and no round trip follows. */
@@ -421,7 +467,17 @@ static int fmt_knob(const inst_t *s, int id, char *buf, int len)
         return snprintf(buf, (size_t)len, "%s", SLOPE[crv_curve(s->v[id])]);
     }
     case P_IN_ON: case P_PH_INV: case P_PH_ON: case P_WD_ON: case P_BM_ON: case P_BAL_ON: case P_EQ_ON: case P_LP_ON: case P_HP_ON:
+    case P_TS_CLIP: case P_TS_M3: case P_TS_M6: case P_TS_ON: case P_CP_CLIP: case P_CP_RMS: case P_CP_PEAK: case P_CP_ON: case P_GT_ON: case P_GT_FLIP: case P_MX_ON:
         return snprintf(buf, (size_t)len, "%s", on(s, id) ? "On" : "Off");
+    case P_TS_ATT: case P_TS_SUS: {
+        float b = ts_bipolar(s->v[id]);
+        return b == 0.0f ? snprintf(buf, (size_t)len, "0 %%") : snprintf(buf, (size_t)len, "%+.0f %%", (double)(b * 100.0f));
+    }
+    case P_TS_PUMP: case P_TS_SPEED: return dj_fmt_percent(buf, len, n);
+    case P_CP_THR: return dj_fmt_db(buf, len, dj_comp_thresh_db(n));
+    case P_CP_ATT: return dj_fmt_ms(buf, len, dj_taper_attack_ms(n));
+    case P_CP_REL: return dj_fmt_ms(buf, len, dj_taper_release_ms(n));
+    case P_CP_RATIO: { float q = dj_comp_ratio(n); return snprintf(buf, (size_t)len, q < 9.95f ? "%.1f:1" : "%.0f:1", (double)q); }
     case P_GT_THR: return s->v[id] <= GATE_OFF_KNOB ? snprintf(buf, (size_t)len, "Off") : dj_fmt_db(buf, len, dj_taper_thresh_db(n));
     case P_GT_ATT: return dj_fmt_ms(buf, len, dj_taper_attack_ms(n));
     case P_GT_HOLD: return dj_fmt_ms(buf, len, dj_taper_hold_ms(n));
@@ -501,6 +557,8 @@ static int get_param(void *inst, const char *key, char *buf, int buf_len)
         case P_M_FIN_L: case P_M_FIN_R: v = dj_meter_value01(&s->mfin, id == P_M_FIN_R); break;
         case P_FIN_DB_I: case P_FIN_DB_T: v = (id == P_FIN_DB_T) ? dj_readout_dec01(s->rd[RD_FIN].held_db) : dj_readout_int01(s->rd[RD_FIN].held_db); break;
         case P_MX_GR: v = dj_grmeter_value01(&s->gr); break;
+        case P_CP_GR: v = dj_grmeter_value01(&s->cgr); break;
+        case P_CGR_DB_I: case P_CGR_DB_T: v = (id == P_CGR_DB_T) ? dj_readout_dec01(-s->rd[RD_CGR].held_db) : dj_readout_int01(-s->rd[RD_CGR].held_db); break;
         case P_IN_DB_I: case P_IN_DB_T: case P_OUT_DB_I: case P_OUT_DB_T: case P_MXI_DB_I: case P_MXI_DB_T: case P_GR_DB_I: case P_GR_DB_T: {
             int rd = (id - P_IN_DB_I) / 2;
             float db = rd == RD_GR ? -s->rd[RD_GR].held_db : s->rd[rd].held_db;   /* reduction reads as "-3.2 dB" */
@@ -566,17 +624,25 @@ static void process(void *inst, const int16_t *in_lr, int16_t *out_lr, int frame
         for (int i = 0; i < n; i++) { l[i] = (float)in_lr[2 * i] * (1.0f / 32768.0f); r[i] = (float)in_lr[2 * i + 1] * (1.0f / 32768.0f); }
         {   float pk = dj_block_peak(l, r, n); if (pk > s->in_peak) s->in_peak = pk; }   /* UTILITY: INPUT PEAK, before GAIN */
         for (int st = 0; st < S_MAX; st++) {
+            if (st == S_COMP) {                            /* OUTPUT page IN: after the filters, before the compressor */
+                dj_meter_push(&s->mxin, l, r, n);
+                dj_readout_push(&s->rd[RD_MXI], dj_readout_lin_db(dj_block_peak(l, r, n)), n);
+            }
             run_stage(s, st, l, r, n);
             if (st == S_IN) {                              /* INPUT page: after the gain knob, before the phase invert */
                 dj_meter_push(&s->min, l, r, n);
                 dj_readout_push(&s->rd[RD_IN], dj_readout_lin_db(dj_block_peak(l, r, n)), n);
-            } else if (st == S_BAL) {                      /* FILTER page: after balance (and its on/off), before the DJ EQ */
+            } else if (st == S_GATE) {                     /* FILTER page: after the gate (2.1.1; was after balance), before the DJ EQ */
                 dj_meter_push(&s->mfin, l, r, n);
                 dj_readout_push(&s->rd[RD_FIN], dj_readout_lin_db(dj_block_peak(l, r, n)), n);
             }
         }
-        dj_meter_push(&s->mxin, l, r, n);                  /* the maximizer's input: after the gate, before its threshold gain */
-        dj_readout_push(&s->rd[RD_MXI], dj_readout_lin_db(dj_block_peak(l, r, n)), n);
+        {   /* the COMP meter (2.1.1), as the maximizer's: from 2 dB before THRESHOLD, then the reduction; nothing while it is off */
+            float gr = 0.0f, drive = -100.0f;
+            if (!dj_xfade_off(&s->xf[S_COMP])) dj_comp_take_stats(&s->cp, &gr, &drive);
+            dj_grmeter_push(&s->cgr, gr > 0.05f && gr > drive ? gr : drive, n);
+            dj_readout_push(&s->rd[RD_CGR], gr, n);
+        }
         run_stage(s, S_MAX, l, r, n);
         dj_meter_push(&s->mout, l, r, n);
         dj_readout_push(&s->rd[RD_OUT], dj_readout_lin_db(dj_block_peak(l, r, n)), n);
@@ -602,9 +668,10 @@ static void process(void *inst, const int16_t *in_lr, int16_t *out_lr, int frame
             (int)lroundf(dj_meter_value01(&s->mout, 0) * top), (int)lroundf(dj_meter_value01(&s->mout, 1) * top),
             (int)lroundf(dj_meter_value01(&s->mxin, 0) * top), (int)lroundf(dj_meter_value01(&s->mxin, 1) * top),
             (int)lroundf(dj_grmeter_value01(&s->gr) * top),
-            (int)lroundf(dj_meter_value01(&s->mfin, 0) * top), (int)lroundf(dj_meter_value01(&s->mfin, 1) * top) };
+            (int)lroundf(dj_meter_value01(&s->mfin, 0) * top), (int)lroundf(dj_meter_value01(&s->mfin, 1) * top),
+            (int)lroundf(dj_grmeter_value01(&s->cgr) * top) };
         for (int k = 0; k < RD_COUNT; k++) {
-            float db = k == RD_GR ? -s->rd[RD_GR].held_db : s->rd[k].held_db;
+            float db = (k == RD_GR || k == RD_CGR) ? -s->rd[k].held_db : s->rd[k].held_db;
             dj_readout_frames(db, &f[N_BAR_FRAMES + 2 * k], &f[N_BAR_FRAMES + 1 + 2 * k]);
         }
         for (int i = 0; i < N_METER_FRAMES; i++) if (f[i] != s->last_frame[i]) { s->last_frame[i] = f[i]; s->rev++; }

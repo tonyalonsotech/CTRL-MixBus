@@ -9,12 +9,19 @@
  * the attack is slow; a longer attack therefore lets the transient through the limiter and clips it (harder, more edgy).
  * The two stereo channels share ONE gain (linked detection), so the image cannot shift. Output trim is applied after the
  * clip, so the ceiling can only be lowered, never exceeded. With the defaults (threshold 0 dB, output 0 dB) the module is
- * an exact pass-through for any signal at or below full scale. Everything is float, allocation-free, no locks. */
+ * an exact pass-through for any signal at or below full scale. Everything is float, allocation-free, no locks.
+ * ON/OFF (2.1.3, the user's call): off bypasses the threshold gain, the limiter and the ceiling clip -- everything but the output
+ * trim, which works either way (the switch is after the maximizer, before OUTPUT). The change fades over DJ_MAX_SWITCH_MS. While
+ * off the limiter rests (gain 1) and the meter statistics read nothing. */
 #pragma once
 #include "dj_common.h"
 
+#define DJ_MAX_SWITCH_MS 6.0f
+
 typedef struct {
     float fs;
+    int on;
+    dj_smooth_t on_mix;              /* 1 = maximizing, 0 = bypassed (the output trim still applies) */
     dj_smooth_t mk, out;             /* threshold gain and output trim, linear, smoothed (no zipper noise) */
     double att_a, rel_a;             /* per-sample glide coefficients */
     double g;                        /* limiter gain, <= 1. Double: a float one-pole stalls just short of 1.0 and never settles */
@@ -26,6 +33,7 @@ typedef struct {
 void dj_max_init(dj_maximizer_t *m, float fs);
 void dj_max_set(dj_maximizer_t *m, float thr_db, float attack_ms, float release_ms, float out_db);
 void dj_max_reset(dj_maximizer_t *m);
+void dj_max_set_on(dj_maximizer_t *m, int on);
 void dj_max_process(dj_maximizer_t *m, float *l, float *r, int n);
 /* peaks (linear) of the signal at the limiter's input since the last call, and the gain reduction in dB (>= 0) */
 void dj_max_take_stats(dj_maximizer_t *m, float *in_pk_l, float *in_pk_r, float *gr_db);

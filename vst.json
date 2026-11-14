@@ -2,7 +2,7 @@
   "name": "CTRL MixBus",
   "vendor": "CTRL",
   "uid": "DjUS",
-  "version": 2100,
+  "version": 2200,
   "so": "ctrl_mixbus.so",
   "effect": true,
   "params": "params.json",
@@ -26,6 +26,8 @@
       "src/dsp/dj_eq.c",
       "src/dsp/dj_filter.c",
       "src/dsp/dj_gate.c",
+      "src/dsp/dj_transient.c",
+      "src/dsp/dj_comp.c",
       "src/dsp/dj_maximizer.c",
       "src/dsp/dj_meter.c",
       "src/dsp/dj_taper.c"
